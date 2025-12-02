@@ -4,7 +4,7 @@ import {
   Plus, TrendingUp, TrendingDown, Calendar, 
   ChevronLeft, ChevronRight, X, Receipt, Wallet, PiggyBank,
   ShoppingBag, Utensils, Car, Film, FileText, Heart, BookOpen, MoreHorizontal,
-  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock
+  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock, Sun, Moon
 } from 'lucide-react';
 import * as api from './api';
 
@@ -73,10 +73,10 @@ const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-dark-700 border border-dark-500 rounded-lg p-3">
+      <div className="dark:bg-dark-700 bg-white dark:border-dark-500 border-gray-200 border rounded-lg p-3">
         <p className="font-semibold" style={{ color: data.color }}>{data.name}</p>
-        <p className="text-gray-300 font-mono">{formatCurrency(data.total)}</p>
-        <p className="text-gray-500 text-sm">{data.count} transaction{data.count !== 1 ? 's' : ''}</p>
+        <p className="dark:text-gray-300 text-gray-700 font-mono">{formatCurrency(data.total)}</p>
+        <p className="dark:text-gray-500 text-gray-600 text-sm">{data.count} transaction{data.count !== 1 ? 's' : ''}</p>
       </div>
     );
   }
@@ -103,25 +103,26 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen animated-bg flex items-center justify-center p-4">
+    <div className="min-h-screen animated-bg flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-2xl bg-teal-500 flex items-center justify-center mx-auto mb-4">
             <Receipt className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Makbuz</h1>
-          <p className="text-gray-500">Enter your password to continue</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Enter your password to continue</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-dark-700 border border-dark-600 rounded-xl focus:border-teal-500 text-lg"
+              className="w-full pl-12 pr-4 py-4 dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border rounded-xl focus:border-teal-500 text-lg"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               autoFocus
             />
           </div>
@@ -153,6 +154,10 @@ export default function App() {
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('makbuz-theme');
+    return saved ? saved === 'dark' : true;
+  });
   
   // Modals
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -169,6 +174,33 @@ export default function App() {
   
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
+
+  // Apply theme on mount and when it changes
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.remove('light');
+      root.classList.add('dark');
+      localStorage.setItem('makbuz-theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      localStorage.setItem('makbuz-theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  // Apply initial theme on mount (before React renders)
+  useEffect(() => {
+    const saved = localStorage.getItem('makbuz-theme');
+    const root = document.documentElement;
+    if (saved === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    }
+  }, []);
 
   // Check authentication on mount
   useEffect(() => {
@@ -389,7 +421,7 @@ export default function App() {
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <div className="min-h-screen animated-bg p-4 md:p-8 pb-24 md:pb-8">
+    <div className="min-h-screen animated-bg p-4 md:p-8 pb-24 md:pb-8" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="mb-8 animate-fade-in">
@@ -400,7 +432,7 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text tracking-tight">Makbuz</h1>
-                <p className="text-xs text-gray-500">expense tracker</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>expense tracker</p>
               </div>
             </div>
             
@@ -408,20 +440,20 @@ export default function App() {
               {/* Category Manager Button */}
               <button
                 onClick={() => setShowCategoryManager(true)}
-                className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 transition-colors"
+                className="p-2 rounded-lg dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border dark:hover:bg-dark-600 hover:bg-gray-50 transition-colors"
                 title="Manage Categories"
               >
-                <Tag className="w-5 h-5 text-gray-400" />
+                <Tag className="w-5 h-5 dark:text-gray-400 text-gray-600" />
               </button>
               
               {/* Display Mode Toggle */}
-              <div className="flex gap-1 bg-dark-700 p-1 rounded-lg">
+              <div className="flex gap-1 dark:bg-dark-700 bg-white p-1 rounded-lg">
                 <button
                   onClick={() => setDisplayMode('chart')}
                   className={`p-2 rounded-md transition-all ${
                     displayMode === 'chart' 
-                      ? 'bg-dark-500 text-teal-400' 
-                      : 'text-gray-400 hover:text-white'
+                      ? 'dark:bg-dark-500 bg-gray-200 text-teal-400' 
+                      : 'dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900'
                   }`}
                   title="Chart View"
                 >
@@ -431,8 +463,8 @@ export default function App() {
                   onClick={() => setDisplayMode('table')}
                   className={`p-2 rounded-md transition-all ${
                     displayMode === 'table' 
-                      ? 'bg-dark-500 text-teal-400' 
-                      : 'text-gray-400 hover:text-white'
+                      ? 'dark:bg-dark-500 bg-gray-200 text-teal-400' 
+                      : 'dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900'
                   }`}
                   title="Table View"
                 >
@@ -441,33 +473,46 @@ export default function App() {
               </div>
 
               {/* View Toggle */}
-              <div className="flex gap-1 bg-dark-700 p-1 rounded-lg">
+              <div className="flex gap-1 dark:bg-dark-700 bg-white p-1 rounded-lg">
                 <button
                   onClick={() => setView('monthly')}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
                       view === 'monthly' 
                         ? 'bg-teal-500 text-white' 
-                        : 'text-gray-400 hover:text-white'
+                        : 'dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900'
                     }`}
                 >
                   Monthly
                 </button>
                 <button
                   onClick={() => setView('yearly')}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                      view === 'yearly' 
-                        ? 'bg-teal-500 text-white' 
-                        : 'text-gray-400 hover:text-white'
-                    }`}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                    view === 'yearly' 
+                      ? 'bg-teal-500 text-white' 
+                      : 'dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900'
+                  }`}
                 >
                   Yearly
                 </button>
               </div>
 
+              {/* Theme Toggle */}
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2 rounded-lg dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border dark:hover:bg-dark-600 hover:bg-gray-50 transition-colors"
+                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDarkMode ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+                )}
+              </button>
+
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-lg bg-dark-700 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                className="p-2 rounded-lg dark:bg-dark-700 bg-white hover:bg-red-500/20 hover:text-red-400 transition-colors"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -479,11 +524,11 @@ export default function App() {
           <div className="flex items-center justify-center gap-4">
             <button 
               onClick={navigatePrev}
-              className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 transition-colors"
+              className="p-2 rounded-lg dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border dark:hover:bg-dark-600 hover:bg-gray-50 transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2 px-5 py-2.5 bg-dark-700 rounded-lg min-w-[180px] justify-center">
+            <div className="flex items-center gap-2 px-5 py-2.5 dark:bg-dark-700 bg-white rounded-lg min-w-[180px] justify-center">
               <Calendar className="w-4 h-4 text-teal-400" />
               <span className="font-semibold">
                 {view === 'monthly' ? `${MONTH_NAMES[month - 1]} ${year}` : year}
@@ -491,7 +536,7 @@ export default function App() {
             </div>
             <button 
               onClick={navigateNext}
-              className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 transition-colors"
+              className="p-2 rounded-lg dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border dark:hover:bg-dark-600 hover:bg-gray-50 transition-colors"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -506,9 +551,9 @@ export default function App() {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 animate-slide-up">
-              <div className="bg-dark-700 rounded-xl p-6 card-hover border border-dark-600">
+              <div className="dark:bg-dark-700 bg-white rounded-xl p-6 card-hover dark:border-dark-600 border-gray-200 border">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-gray-400 text-sm font-medium">Income</span>
+                  <span className="dark:text-gray-400 text-gray-600 text-sm font-medium">Income</span>
                   <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-green-400" />
                   </div>
@@ -518,9 +563,9 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="bg-dark-700 rounded-xl p-6 card-hover border border-dark-600">
+              <div className="dark:bg-dark-700 bg-white rounded-xl p-6 card-hover dark:border-dark-600 border-gray-200 border">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-gray-400 text-sm font-medium">Expenses</span>
+                  <span className="dark:text-gray-400 text-gray-600 text-sm font-medium">Expenses</span>
                   <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center">
                     <TrendingDown className="w-5 h-5 text-rose-400" />
                   </div>
@@ -530,9 +575,9 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="bg-dark-700 rounded-xl p-6 card-hover border border-dark-600">
+              <div className="dark:bg-dark-700 bg-white rounded-xl p-6 card-hover dark:border-dark-600 border-gray-200 border">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-gray-400 text-sm font-medium">Balance</span>
+                  <span className="dark:text-gray-400 text-gray-600 text-sm font-medium">Balance</span>
                   <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center">
                     <Wallet className="w-5 h-5 text-teal-400" />
                   </div>
@@ -551,7 +596,7 @@ export default function App() {
             {displayMode === 'chart' ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Donut Chart */}
-                <div className="bg-dark-700 rounded-xl p-6 border border-dark-600 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <div className="dark:bg-dark-700 bg-white rounded-xl p-6 dark:border-dark-600 border-gray-200 border animate-slide-up" style={{ animationDelay: '0.1s' }}>
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <PiggyBank className="w-5 h-5 text-teal-400" />
                     Expense Breakdown
@@ -590,14 +635,14 @@ export default function App() {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="h-80 flex items-center justify-center text-gray-500">
+                    <div className="h-80 flex items-center justify-center dark:text-gray-500 text-gray-400">
                       No expenses yet this {view === 'monthly' ? 'month' : 'year'}
                     </div>
                   )}
                 </div>
 
                 {/* Category List or Bar Chart */}
-                <div className="bg-dark-700 rounded-xl p-6 border border-dark-600 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <div className="dark:bg-dark-700 bg-white rounded-xl p-6 dark:border-dark-600 border-gray-200 border animate-slide-up" style={{ animationDelay: '0.2s' }}>
                   {view === 'monthly' ? (
                     <>
                       <h2 className="text-lg font-semibold mb-4">Categories</h2>
@@ -612,7 +657,7 @@ export default function App() {
                             <button
                               key={cat.id}
                               onClick={() => handleCategoryClick(cat)}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg bg-dark-600/50 hover:bg-dark-600 transition-all group"
+                              className="w-full flex items-center gap-3 p-3 rounded-lg dark:bg-dark-600/50 bg-gray-50 dark:hover:bg-dark-600 hover:bg-gray-100 transition-all group"
                             >
                               <div 
                                 className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -622,11 +667,11 @@ export default function App() {
                               </div>
                               <div className="flex-1 text-left">
                                 <p className="font-medium">{cat.name}</p>
-                                <p className="text-sm text-gray-500">{cat.count} transaction{cat.count !== 1 ? 's' : ''}</p>
+                                <p className="text-sm dark:text-gray-500 text-gray-600">{cat.count} transaction{cat.count !== 1 ? 's' : ''}</p>
                               </div>
                               <div className="text-right">
                                 <p className="font-semibold font-mono" style={{ color: cat.color }}>{formatCurrency(cat.total)}</p>
-                                <p className="text-sm text-gray-500">{percentage}%</p>
+                                <p className="text-sm dark:text-gray-500 text-gray-600">{percentage}%</p>
                               </div>
                             </button>
                           );
@@ -662,8 +707,8 @@ export default function App() {
               </div>
             ) : (
               /* Table View */
-              <div className="bg-dark-700 rounded-xl border border-dark-600 mb-8 animate-slide-up overflow-hidden">
-                <div className="p-4 border-b border-dark-600 flex items-center justify-between flex-wrap gap-2">
+              <div className="dark:bg-dark-700 bg-white rounded-xl dark:border-dark-600 border-gray-200 border mb-8 animate-slide-up overflow-hidden">
+                <div className="p-4 dark:border-b-dark-600 border-b-gray-200 border-b flex items-center justify-between flex-wrap gap-2">
                   <h2 className="text-lg font-semibold">
                     Transactions - {MONTH_NAMES[month - 1]} {year}
                   </h2>
@@ -675,7 +720,7 @@ export default function App() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-dark-600 text-left text-sm text-gray-400">
+                      <tr className="dark:border-b-dark-600 border-b-gray-200 border-b text-left text-sm dark:text-gray-400 text-gray-600">
                         <th className="p-4 font-medium">Date</th>
                         <th className="p-4 font-medium">Description</th>
                         <th className="p-4 font-medium">Category</th>
@@ -686,8 +731,8 @@ export default function App() {
                     <tbody>
                       {transactions.length > 0 ? (
                         transactions.map((t, idx) => (
-                          <tr key={`${t.type}-${t.id}-${idx}`} className="border-b border-dark-600/50 hover:bg-dark-600/30">
-                            <td className="p-4 text-sm text-gray-400 font-mono">{formatDate(t.date)}</td>
+                          <tr key={`${t.type}-${t.id}-${idx}`} className="dark:border-b-dark-600/50 border-b-gray-200/50 border-b dark:hover:bg-dark-600/30 hover:bg-gray-50">
+                            <td className="p-4 text-sm dark:text-gray-400 text-gray-600 font-mono">{formatDate(t.date)}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
                                 <span>{t.description}</span>
@@ -710,7 +755,7 @@ export default function App() {
                             <td className="p-4">
                               <button
                                 onClick={() => handleDeleteTransaction(t)}
-                                className="p-1.5 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-red-500/20 dark:text-gray-500 text-gray-600 hover:text-red-400 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -719,7 +764,7 @@ export default function App() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="5" className="p-8 text-center text-gray-500">
+                          <td colSpan="5" className="p-8 text-center dark:text-gray-500 text-gray-400">
                             No transactions this month
                           </td>
                         </tr>
@@ -731,7 +776,7 @@ export default function App() {
             )}
 
             {/* Action Buttons - Fixed on mobile */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-dark-900 md:static md:bg-transparent md:p-0">
+            <div className="fixed bottom-0 left-0 right-0 p-4 dark:bg-dark-900 bg-gray-50 md:static md:bg-transparent md:p-0">
               <div className="flex justify-center gap-4 max-w-6xl mx-auto">
                 <button
                   onClick={() => {
@@ -777,7 +822,7 @@ export default function App() {
         <Modal onClose={() => setShowAddExpense(false)} title="Add Expense">
           <form onSubmit={handleAddExpense} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Amount (€)</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Amount (€)</label>
               <input
                 type="number"
                 step="0.01"
@@ -789,7 +834,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Description</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Description</label>
               <input
                 type="text"
                 required
@@ -800,7 +845,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Category</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Category</label>
               {categories.length === 0 ? (
                 <div className="text-amber-400 text-sm p-3 bg-amber-500/10 rounded-lg">
                   No categories found. Please add categories first in the category manager (🏷️ icon).
@@ -820,7 +865,7 @@ export default function App() {
               )}
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Date</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Date</label>
               <input
                 type="date"
                 required
@@ -829,7 +874,7 @@ export default function App() {
                 className="w-full"
               />
             </div>
-            <div className="space-y-3 p-3 bg-dark-600/50 rounded-lg">
+            <div className="space-y-3 p-3 dark:bg-dark-600/50 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -838,7 +883,7 @@ export default function App() {
                   onChange={(e) => setExpenseForm({ ...expenseForm, is_recurring: e.target.checked ? 1 : 0, recurring_months: e.target.checked ? expenseForm.recurring_months : 0 })}
                   className="w-4 h-4 rounded accent-teal-500"
                 />
-                <label htmlFor="expense-recurring" className="text-sm text-gray-300 flex items-center gap-2">
+                <label htmlFor="expense-recurring" className="text-sm dark:text-gray-300 text-gray-700 flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 text-teal-400" />
                   Recurring monthly (e.g., rent, subscriptions)
                 </label>
@@ -855,7 +900,7 @@ export default function App() {
                     }}
                     className="flex-1 text-sm font-mono"
                   />
-                  <span className="text-sm text-gray-300">Months</span>
+                  <span className="text-sm dark:text-gray-300 text-gray-700">Months</span>
                 </div>
               )}
             </div>
@@ -875,7 +920,7 @@ export default function App() {
         <Modal onClose={() => setShowAddIncome(false)} title="Add Income">
           <form onSubmit={handleAddIncome} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Amount (€)</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Amount (€)</label>
               <input
                 type="number"
                 step="0.01"
@@ -887,7 +932,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Description</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Description</label>
               <input
                 type="text"
                 required
@@ -898,7 +943,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-2 font-medium">Date</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Date</label>
               <input
                 type="date"
                 required
@@ -907,7 +952,7 @@ export default function App() {
                 className="w-full"
               />
             </div>
-            <div className="space-y-3 p-3 bg-dark-600/50 rounded-lg">
+            <div className="space-y-3 p-3 dark:bg-dark-600/50 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -916,7 +961,7 @@ export default function App() {
                   onChange={(e) => setIncomeForm({ ...incomeForm, is_recurring: e.target.checked ? 1 : 0, recurring_months: e.target.checked ? incomeForm.recurring_months : 0 })}
                   className="w-4 h-4 rounded accent-green-500"
                 />
-                <label htmlFor="income-recurring" className="text-sm text-gray-300 flex items-center gap-2">
+                <label htmlFor="income-recurring" className="text-sm dark:text-gray-300 text-gray-700 flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 text-green-400" />
                   Recurring monthly (e.g., salary)
                 </label>
@@ -933,7 +978,7 @@ export default function App() {
                     }}
                     className="flex-1 text-sm font-mono"
                   />
-                  <span className="text-sm text-gray-300">Months</span>
+                  <span className="text-sm dark:text-gray-300 text-gray-700">Months</span>
                 </div>
               )}
             </div>
@@ -953,11 +998,11 @@ export default function App() {
         <Modal onClose={() => setShowCategoryManager(false)} title="Manage Categories" wide>
           <div className="space-y-6">
             {/* Add Category Form */}
-            <form onSubmit={handleAddCategory} className="space-y-4 p-4 bg-dark-600/30 rounded-lg">
-              <h3 className="font-semibold text-sm text-gray-400 uppercase tracking-wide">Add New Category</h3>
+            <form onSubmit={handleAddCategory} className="space-y-4 p-4 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
+              <h3 className="font-semibold text-sm dark:text-gray-400 text-gray-600 uppercase tracking-wide">Add New Category</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Name</label>
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Name</label>
                   <input
                     type="text"
                     placeholder="Category name"
@@ -967,7 +1012,7 @@ export default function App() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Icon</label>
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Icon</label>
                   <select
                     value={categoryForm.icon}
                     onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
@@ -979,14 +1024,14 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Color</label>
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Color</label>
                   <div className="flex gap-2 flex-wrap">
                     {COLOR_OPTIONS.map(color => (
                       <button
                         key={color}
                         type="button"
                         onClick={() => setCategoryForm({ ...categoryForm, color })}
-                        className={`w-7 h-7 rounded-lg transition-all ${categoryForm.color === color ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-700' : ''}`}
+                        className={`w-7 h-7 rounded-lg transition-all ${categoryForm.color === color ? 'ring-2 ring-white dark:ring-offset-dark-700 ring-offset-white' : ''}`}
                         style={{ backgroundColor: color }}
                       />
                     ))}
@@ -1004,12 +1049,12 @@ export default function App() {
 
             {/* Category List */}
             <div>
-              <h3 className="font-semibold text-sm text-gray-400 uppercase tracking-wide mb-3">Existing Categories</h3>
+              <h3 className="font-semibold text-sm dark:text-gray-400 text-gray-600 uppercase tracking-wide mb-3">Existing Categories</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {categories.map(cat => {
                   const IconComponent = ICONS[cat.icon] || MoreHorizontal;
                   return (
-                    <div key={cat.id} className="flex items-center justify-between p-3 bg-dark-600/30 rounded-lg">
+                    <div key={cat.id} className="flex items-center justify-between p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div 
                           className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -1021,7 +1066,7 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="p-2 rounded-lg hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-red-500/20 dark:text-gray-500 text-gray-600 hover:text-red-400 transition-colors"
                         title="Delete category"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1047,7 +1092,7 @@ export default function App() {
               categoryExpenses.map((expense) => (
                 <div 
                   key={expense.id} 
-                  className="flex items-center justify-between p-4 bg-dark-600/50 rounded-lg"
+                  className="flex items-center justify-between p-4 dark:bg-dark-600/50 bg-gray-50 rounded-lg"
                 >
                   <div>
                     <div className="flex items-center gap-2">
@@ -1056,7 +1101,7 @@ export default function App() {
                         <RefreshCw className="w-3.5 h-3.5 text-teal-400" />
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{formatDate(expense.date)}</p>
+                    <p className="text-sm dark:text-gray-500 text-gray-600">{formatDate(expense.date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="font-semibold font-mono" style={{ color: showCategoryDetails.color }}>
@@ -1072,11 +1117,11 @@ export default function App() {
                 </div>
               ))
             ) : (
-              <p className="text-center text-gray-500 py-8">No expenses in this category</p>
+              <p className="text-center dark:text-gray-500 text-gray-400 py-8">No expenses in this category</p>
             )}
           </div>
-          <div className="mt-4 pt-4 border-t border-dark-600 flex justify-between items-center">
-            <span className="text-gray-400 font-medium">Total</span>
+          <div className="mt-4 pt-4 dark:border-t-dark-600 border-t-gray-200 border-t flex justify-between items-center">
+            <span className="dark:text-gray-400 text-gray-600 font-medium">Total</span>
             <span className="text-xl font-bold font-mono" style={{ color: showCategoryDetails.color }}>
               {formatCurrency(showCategoryDetails.total)}
             </span>
@@ -1095,14 +1140,14 @@ function Modal({ children, onClose, title, wide = false }) {
       onClick={onClose}
     >
       <div 
-        className={`bg-dark-700 rounded-2xl border border-dark-600 max-h-[90vh] overflow-y-auto ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+        className={`dark:bg-dark-700 bg-white rounded-2xl dark:border-dark-600 border-gray-200 border max-h-[90vh] overflow-y-auto ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-dark-600 sticky top-0 bg-dark-700 z-10">
+        <div className="flex items-center justify-between p-5 dark:border-b-dark-600 border-b-gray-200 border-b sticky top-0 dark:bg-dark-700 bg-white z-10">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button 
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-dark-600 transition-colors"
+            className="p-2 rounded-lg dark:hover:bg-dark-600 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

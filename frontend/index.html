@@ -18,6 +18,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply theme before React renders to prevent flash
+      (function() {
+        const saved = localStorage.getItem('makbuz-theme');
+        const root = document.documentElement;
+        if (saved === 'light') {
+          root.classList.add('light');
+        } else {
+          root.classList.add('dark');
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       // Register service worker
