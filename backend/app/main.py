@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, extract
 from datetime import date, datetime, timedelta
 from typing import List, Optional
@@ -225,6 +225,75 @@ def delete_category(
     db.commit()
     return {"message": "Category deleted"}
 
+# ============ ITEM ENDPOINTS ============
+
+@app.get("/api/items", response_model=List[schemas.Item])
+def get_items(db: Session = Depends(get_db), _: bool = Depends(get_current_user)):
+    items = db.query(models.Item).order_by(models.Item.name).all()
+    return items
+
+@app.get("/api/items/by-category/{category_id}", response_model=List[schemas.ItemWithCount])
+def get_items_by_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_user)
+):
+    """Get items with purchase counts for a specific category"""
+    items = db.query(
+        models.Item,
+        func.count(models.Expense.id).label('count')
+    ).join(
+        models.Expense, models.Expense.item_id == models.Item.id
+    ).filter(
+        models.Expense.category_id == category_id
+    ).group_by(models.Item.id).order_by(func.count(models.Expense.id).desc()).all()
+    
+    return [
+        schemas.ItemWithCount(
+            id=item.id,
+            name=item.name,
+            created_at=item.created_at,
+            count=count
+        )
+        for item, count in items
+    ]
+
+@app.post("/api/items", response_model=schemas.Item)
+def create_item(
+    item: schemas.ItemCreate, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_user)
+):
+    # Check if item already exists
+    existing = db.query(models.Item).filter(models.Item.name == item.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Item already exists")
+    
+    db_item = models.Item(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/api/items/{item_id}")
+def delete_item(
+    item_id: int, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_user)
+):
+    db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Check if item has expenses
+    expense_count = db.query(models.Expense).filter(models.Expense.item_id == item_id).count()
+    if expense_count > 0:
+        raise HTTPException(status_code=400, detail="Cannot delete item with expenses")
+    
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Item deleted"}
+
 # ============ EXPENSE ENDPOINTS ============
 
 @app.get("/api/expenses", response_model=List[schemas.ExpenseWithCategory])
@@ -237,7 +306,10 @@ def get_expenses(
     db: Session = Depends(get_db),
     _: bool = Depends(get_current_user)
 ):
-    query = db.query(models.Expense)
+    query = db.query(models.Expense).options(
+        joinedload(models.Expense.category),
+        joinedload(models.Expense.item)
+    )
     
     if category_id:
         query = query.filter(models.Expense.category_id == category_id)
@@ -258,6 +330,12 @@ def create_expense(
     category = db.query(models.Category).filter(models.Category.id == expense.category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Verify item exists if provided
+    if expense.item_id:
+        item = db.query(models.Item).filter(models.Item.id == expense.item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
     
     db_expense = models.Expense(**expense.model_dump())
     db.add(db_expense)

@@ -152,6 +152,7 @@ export default function App() {
   const [stats, setStats] = useState(null);
   const [yearlyStats, setYearlyStats] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [items, setItems] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -165,9 +166,12 @@ export default function App() {
   const [showCategoryDetails, setShowCategoryDetails] = useState(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [categoryExpenses, setCategoryExpenses] = useState([]);
+  const [categoryItems, setCategoryItems] = useState([]);
   
   // Form states
-  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', item_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+  const [newItemName, setNewItemName] = useState('');
+  const [showCreateItem, setShowCreateItem] = useState(false);
   const [incomeForm, setIncomeForm] = useState({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#14B8A6', icon: 'shopping-bag' });
   const [submitting, setSubmitting] = useState(false);
@@ -283,14 +287,20 @@ export default function App() {
   async function handleCategoryClick(category) {
     setShowCategoryDetails(category);
     try {
-      const expenses = await api.getExpenses({ 
-        category_id: category.id, 
-        month: view === 'monthly' ? month : undefined, 
-        year 
-      });
+      const [expenses, items] = await Promise.all([
+        api.getExpenses({ 
+          category_id: category.id, 
+          month: view === 'monthly' ? month : undefined, 
+          year 
+        }),
+        api.getItemsByCategory(category.id)
+      ]);
       setCategoryExpenses(expenses);
+      setCategoryItems(items || []);
     } catch (error) {
-      console.error('Failed to load expenses:', error);
+      console.error('Failed to load category data:', error);
+      setCategoryExpenses([]);
+      setCategoryItems([]);
     }
   }
 
@@ -304,9 +314,12 @@ export default function App() {
         ...expenseForm,
         amount: parseFloat(expenseForm.amount),
         category_id: parseInt(expenseForm.category_id),
+        item_id: expenseForm.item_id ? parseInt(expenseForm.item_id) : null,
       });
       setShowAddExpense(false);
-      setExpenseForm({ amount: '', description: '', category_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+      setExpenseForm({ amount: '', description: '', category_id: '', item_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+      setNewItemName('');
+      setShowCreateItem(false);
       loadData();
     } catch (error) {
       alert('Failed to add expense: ' + error.message);
@@ -346,6 +359,55 @@ export default function App() {
       alert('Failed to add category: ' + error.message);
     }
     setSubmitting(false);
+  }
+
+  // Load items when category changes
+  useEffect(() => {
+    if (expenseForm.category_id && showAddExpense) {
+      loadItems();
+    } else {
+      setItems([]);
+    }
+  }, [expenseForm.category_id, showAddExpense]);
+
+  async function loadItems() {
+    try {
+      const allItems = await api.getItems();
+      setItems(allItems || []);
+    } catch (error) {
+      console.error('Failed to load items:', error);
+      setItems([]);
+    }
+  }
+
+  // Create new item
+  async function handleCreateItem() {
+    if (!newItemName.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const newItem = await api.createItem({ name: newItemName.trim() });
+      setItems([...items, newItem]);
+      setExpenseForm({ ...expenseForm, item_id: newItem.id.toString() });
+      setNewItemName('');
+      setShowCreateItem(false);
+    } catch (error) {
+      alert('Failed to create item: ' + error.message);
+    }
+    setSubmitting(false);
+  }
+
+  // Delete item
+  async function handleDeleteItem(id) {
+    if (!confirm('Delete this item? This will fail if item has expenses.')) return;
+    try {
+      await api.deleteItem(id);
+      setItems(items.filter(item => item.id !== id));
+      if (expenseForm.item_id === id.toString()) {
+        setExpenseForm({ ...expenseForm, item_id: '' });
+      }
+    } catch (error) {
+      alert('Failed to delete: ' + error.message);
+    }
   }
 
   // Delete category
@@ -854,7 +916,7 @@ export default function App() {
                 <select
                   required
                   value={expenseForm.category_id}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value })}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value, item_id: '' })}
                   className="w-full"
                 >
                   <option value="">Select category</option>
@@ -864,6 +926,65 @@ export default function App() {
                 </select>
               )}
             </div>
+            {expenseForm.category_id && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 font-medium">Item (optional)</label>
+                  {!showCreateItem && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateItem(true)}
+                      className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Create new
+                    </button>
+                  )}
+                </div>
+                {showCreateItem ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Item name (e.g., Edamar)"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateItem())}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateItem}
+                      disabled={!newItemName.trim() || submitting}
+                      className="px-4 py-2 bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateItem(false);
+                        setNewItemName('');
+                      }}
+                      className="px-4 py-2 dark:bg-dark-600 bg-gray-200 rounded-lg hover:opacity-80 transition-opacity text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={expenseForm.item_id}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, item_id: e.target.value })}
+                    className="w-full"
+                  >
+                    <option value="">No item (just description)</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Date</label>
               <input
@@ -1083,11 +1204,31 @@ export default function App() {
       {/* Category Details Modal */}
       {showCategoryDetails && (
         <Modal 
-          onClose={() => { setShowCategoryDetails(null); setCategoryExpenses([]); }} 
+          onClose={() => { setShowCategoryDetails(null); setCategoryExpenses([]); setCategoryItems([]); }} 
           title={showCategoryDetails.name}
           wide
         >
+          {/* Items Section */}
+          {categoryItems.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-sm font-semibold dark:text-gray-400 text-gray-600 mb-3">Items Purchased</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {categoryItems.map((item) => (
+                  <div 
+                    key={item.id}
+                    className="flex items-center justify-between p-3 dark:bg-dark-600/50 bg-gray-50 rounded-lg"
+                  >
+                    <span className="text-sm font-medium">{item.name}</span>
+                    <span className="text-xs dark:text-gray-500 text-gray-600 font-mono">×{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Expenses Section */}
           <div className="space-y-3 max-h-96 overflow-y-auto">
+            <h4 className="text-sm font-semibold dark:text-gray-400 text-gray-600 mb-3">Expenses</h4>
             {categoryExpenses.length > 0 ? (
               categoryExpenses.map((expense) => (
                 <div 
@@ -1097,6 +1238,11 @@ export default function App() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{expense.description}</p>
+                      {expense.item && (
+                        <span className="text-xs px-2 py-0.5 dark:bg-dark-700 bg-white rounded-full dark:text-gray-300 text-gray-700">
+                          {expense.item.name}
+                        </span>
+                      )}
                       {expense.is_recurring === 1 && (
                         <RefreshCw className="w-3.5 h-3.5 text-teal-400" />
                       )}

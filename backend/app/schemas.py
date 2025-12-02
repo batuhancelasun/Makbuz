@@ -2,6 +2,23 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from typing import Optional, List
 
+# Item schemas
+class ItemBase(BaseModel):
+    name: str
+
+class ItemCreate(ItemBase):
+    pass
+
+class Item(ItemBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ItemWithCount(Item):
+    count: int = 0
+
 # Category schemas
 class CategoryBase(BaseModel):
     name: str
@@ -32,6 +49,7 @@ class ExpenseBase(BaseModel):
     amount: float
     description: str
     category_id: int
+    item_id: Optional[int] = None
     date: date
     is_recurring: Optional[int] = 0
     recurring_months: Optional[int] = 0  # 0: infinite, >0: number of months
@@ -43,6 +61,7 @@ class ExpenseUpdate(BaseModel):
     amount: Optional[float] = None
     description: Optional[str] = None
     category_id: Optional[int] = None
+    item_id: Optional[int] = None
     date: Optional[date] = None
     is_recurring: Optional[int] = None
     recurring_months: Optional[int] = None
@@ -56,6 +75,7 @@ class Expense(ExpenseBase):
 
 class ExpenseWithCategory(Expense):
     category: Category
+    item: Optional[Item] = None
 
 # Income schemas
 class IncomeBase(BaseModel):

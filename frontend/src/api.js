@@ -103,6 +103,17 @@ export const deleteCategory = (id) => fetchAPI(`/categories/${id}`, {
   method: 'DELETE',
 });
 
+// Items
+export const getItems = () => fetchAPI('/items');
+export const getItemsByCategory = (categoryId) => fetchAPI(`/items/by-category/${categoryId}`);
+export const createItem = (data) => fetchAPI('/items', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+export const deleteItem = (id) => fetchAPI(`/items/${id}`, {
+  method: 'DELETE',
+});
+
 // Expenses
 export const getExpenses = (params = {}) => {
   const searchParams = new URLSearchParams();
