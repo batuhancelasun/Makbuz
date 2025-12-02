@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  makbuz:
+    image: batubaba619/makbuz:latest
+    container_name: makbuz
+    restart: unless-stopped
+    ports:
+      - "8085:8000"
+    volumes:
+      - makbuz_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/makbuz.db
+      - MAKBUZ_PASSWORD=${MAKBUZ_PASSWORD:-makbuz123}
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/categories')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  makbuz_data:
+    driver: local
+
