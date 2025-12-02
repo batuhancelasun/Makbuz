@@ -12,7 +12,7 @@ function generateIcon(size, maskable = false) {
   
   // Background - dark
   ctx.fillStyle = '#0a0e17';
-  ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(0, 0, size, size);
   
   // Rounded corners (simulated by drawing over corners)
   if (!maskable) {
