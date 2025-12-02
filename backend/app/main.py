@@ -366,6 +366,9 @@ def create_expense(
     
     # Create expense without items first
     expense_data = expense.model_dump(exclude={'items'})
+    # Convert empty string description to None
+    if expense_data.get('description') == '':
+        expense_data['description'] = None
     db_expense = models.Expense(**expense_data)
     db.add(db_expense)
     db.flush()  # Flush to get the expense ID
@@ -420,6 +423,9 @@ def update_expense(
     
     # Update other fields
     for key, value in update_data.items():
+        # Convert empty string description to None
+        if key == 'description' and value == '':
+            value = None
         setattr(db_expense, key, value)
     
     db.commit()

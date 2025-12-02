@@ -39,7 +39,7 @@ class Expense(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     amount = Column(Float, nullable=False)
-    description = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     date = Column(Date, nullable=False)
     is_recurring = Column(Integer, default=0)  # 0: one-time, 1: monthly

@@ -2,7 +2,7 @@ const CACHE_NAME = 'makbuz-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/makbuz.svg',
+  '/makbuz.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-192.png',

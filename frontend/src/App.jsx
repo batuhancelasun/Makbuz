@@ -106,8 +106,8 @@ function LoginScreen({ onLogin }) {
     <div className="min-h-screen animated-bg flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-teal-500 flex items-center justify-center mx-auto mb-4">
-            <Receipt className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center overflow-hidden">
+            <img src="/makbuz.png" alt="Makbuz Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Makbuz</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Enter your password to continue</p>
@@ -532,8 +532,8 @@ export default function App() {
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="/makbuz.png" alt="Makbuz Logo" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text tracking-tight">Makbuz</h1>
@@ -849,7 +849,9 @@ export default function App() {
                             <td className="p-4 text-sm dark:text-gray-400 text-gray-600 font-mono">{formatDate(t.date)}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
-                                <span>{t.description}</span>
+                                <span className={!t.description ? 'dark:text-gray-500 text-gray-400 italic' : ''}>
+                                  {t.description || '(No description)'}
+                                </span>
                                 {t.is_recurring && (
                                   <RefreshCw className="w-3.5 h-3.5 text-teal-400" title="Recurring" />
                                 )}
@@ -948,10 +950,9 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Description</label>
+              <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Description (optional)</label>
               <input
                 type="text"
-                required
                 placeholder="What did you spend on?"
                 value={expenseForm.description}
                 onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
@@ -1401,7 +1402,7 @@ export default function App() {
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{expense.description}</p>
+                      {expense.description && <p className="font-medium">{expense.description}</p>}
                       {expense.items && expense.items.length > 0 && (
                         <div className="flex items-center gap-1 flex-wrap">
                           {expense.items.map((expenseItem, idx) => (

@@ -52,7 +52,7 @@ class ExpenseItemCreate(BaseModel):
 
 class ExpenseBase(BaseModel):
     amount: float
-    description: str
+    description: Optional[str] = None
     category_id: int
     items: Optional[List[ExpenseItemCreate]] = []  # List of items with quantities
     date: date
@@ -74,7 +74,7 @@ class ExpenseUpdate(BaseModel):
 class Expense(BaseModel):
     id: int
     amount: float
-    description: str
+    description: Optional[str] = None
     category_id: int
     date: date
     is_recurring: int = 0
