@@ -844,13 +844,7 @@ export default function App() {
                 </label>
               </div>
               {expenseForm.is_recurring === 1 && (
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">
-                    {expenseForm.recurring_months === 0 
-                      ? 'Duration: Infinite' 
-                      : `${expenseForm.recurring_months} Month${expenseForm.recurring_months !== 1 ? 's' : ''}`
-                    }
-                  </label>
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="0"
@@ -859,9 +853,9 @@ export default function App() {
                       const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
                       setExpenseForm({ ...expenseForm, recurring_months: val });
                     }}
-                    placeholder="Write a number"
-                    className="w-full text-sm font-mono"
+                    className="flex-1 text-sm font-mono"
                   />
+                  <span className="text-sm text-gray-300">Months</span>
                 </div>
               )}
             </div>
@@ -928,13 +922,7 @@ export default function App() {
                 </label>
               </div>
               {incomeForm.is_recurring === 1 && (
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">
-                    {incomeForm.recurring_months === 0 
-                      ? 'Duration: Infinite' 
-                      : `${incomeForm.recurring_months} Month${incomeForm.recurring_months !== 1 ? 's' : ''}`
-                    }
-                  </label>
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="0"
@@ -943,9 +931,9 @@ export default function App() {
                       const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
                       setIncomeForm({ ...incomeForm, recurring_months: val });
                     }}
-                    placeholder="Write a number"
-                    className="w-full text-sm font-mono"
+                    className="flex-1 text-sm font-mono"
                   />
+                  <span className="text-sm text-gray-300">Months</span>
                 </div>
               )}
             </div>
