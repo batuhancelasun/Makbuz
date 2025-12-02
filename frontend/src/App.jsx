@@ -73,7 +73,7 @@ const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-dark-700 border border-dark-500 rounded-lg p-3 shadow-xl">
+      <div className="bg-dark-700 border border-dark-500 rounded-lg p-3">
         <p className="font-semibold" style={{ color: data.color }}>{data.name}</p>
         <p className="text-gray-300 font-mono">{formatCurrency(data.total)}</p>
         <p className="text-gray-500 text-sm">{data.count} transaction{data.count !== 1 ? 's' : ''}</p>
@@ -106,7 +106,7 @@ function LoginScreen({ onLogin }) {
     <div className="min-h-screen animated-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/30">
+          <div className="w-20 h-20 rounded-2xl bg-teal-500 flex items-center justify-center mx-auto mb-4">
             <Receipt className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Makbuz</h1>
@@ -133,7 +133,7 @@ function LoginScreen({ onLogin }) {
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full py-4 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full py-4 bg-teal-500 rounded-xl font-semibold text-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -395,7 +395,7 @@ export default function App() {
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center">
                 <Receipt className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -444,21 +444,21 @@ export default function App() {
               <div className="flex gap-1 bg-dark-700 p-1 rounded-lg">
                 <button
                   onClick={() => setView('monthly')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                    view === 'monthly' 
-                      ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                      view === 'monthly' 
+                        ? 'bg-teal-500 text-white' 
+                        : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Monthly
                 </button>
                 <button
                   onClick={() => setView('yearly')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                    view === 'yearly' 
-                      ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                      view === 'yearly' 
+                        ? 'bg-teal-500 text-white' 
+                        : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Yearly
                 </button>
@@ -731,14 +731,14 @@ export default function App() {
             )}
 
             {/* Action Buttons - Fixed on mobile */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-dark-900 via-dark-900 to-transparent md:static md:bg-transparent md:p-0">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-dark-900 md:static md:bg-transparent md:p-0">
               <div className="flex justify-center gap-4 max-w-6xl mx-auto">
                 <button
                   onClick={() => {
                     setIncomeForm({ ...incomeForm, date: new Date().toISOString().split('T')[0] });
                     setShowAddIncome(true);
                   }}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-lg shadow-green-500/20"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-green-500 rounded-xl font-medium hover:bg-green-600 transition-colors"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Income</span>
@@ -761,7 +761,7 @@ export default function App() {
                     });
                     setShowAddExpense(true);
                   }}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-lg shadow-teal-500/20"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-teal-500 rounded-xl font-medium hover:bg-teal-600 transition-colors"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Expense</span>
@@ -862,7 +862,7 @@ export default function App() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="w-full py-3 bg-teal-500 rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50"
             >
               {submitting ? 'Adding...' : 'Add Expense'}
             </button>
@@ -940,7 +940,7 @@ export default function App() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="w-full py-3 bg-green-500 rounded-lg font-semibold hover:bg-green-600 transition-colors disabled:opacity-50"
             >
               {submitting ? 'Adding...' : 'Add Income'}
             </button>
@@ -1091,11 +1091,11 @@ export default function App() {
 function Modal({ children, onClose, title, wide = false }) {
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className={`bg-dark-700 rounded-2xl border border-dark-600 shadow-2xl max-h-[90vh] overflow-y-auto ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+        className={`bg-dark-700 rounded-2xl border border-dark-600 max-h-[90vh] overflow-y-auto ${wide ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b border-dark-600 sticky top-0 bg-dark-700 z-10">
