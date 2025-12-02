@@ -1,4 +1,4 @@
-const CACHE_NAME = 'makbuz-v3';
+const CACHE_NAME = 'makbuz-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
