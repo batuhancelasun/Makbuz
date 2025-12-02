@@ -532,7 +532,7 @@ export default function App() {
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
                 <img src="/makbuz.png" alt="Makbuz Logo" className="w-full h-full object-contain" />
               </div>
               <div>
@@ -998,7 +998,6 @@ export default function App() {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Item name (e.g., Edamar)"
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateItem())}
@@ -1314,11 +1313,10 @@ export default function App() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Name</label>
-                  <input
-                    type="text"
-                    placeholder="Item name (e.g., Edamar)"
-                    value={itemForm.name}
-                    onChange={(e) => setItemForm({ name: e.target.value })}
+                    <input
+                      type="text"
+                      value={itemForm.name}
+                      onChange={(e) => setItemForm({ name: e.target.value })}
                     className="w-full"
                     required
                   />
