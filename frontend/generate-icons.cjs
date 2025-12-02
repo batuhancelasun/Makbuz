@@ -13,14 +13,15 @@ async function generateIcon(size, maskable = false) {
   // Load the logo image
   const logo = await loadImage('public/makbuz.png');
   
-  // Background (transparent for maskable, or use logo's background)
+  // Background - use theme color for better visibility
   if (maskable) {
-    // Maskable icons need full bleed - use white/transparent background
+    // Maskable icons need full bleed - use white background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, size, size);
   } else {
-    // Regular icons - transparent background
-    ctx.clearRect(0, 0, size, size);
+    // Regular icons - use theme color background (#14B8A6 - teal)
+    ctx.fillStyle = '#14B8A6';
+    ctx.fillRect(0, 0, size, size);
   }
   
   // Calculate padding (10% on each side for maskable, 5% for regular)
