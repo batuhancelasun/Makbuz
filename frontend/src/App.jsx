@@ -4,7 +4,7 @@ import {
   Plus, TrendingUp, TrendingDown, Calendar, 
   ChevronLeft, ChevronRight, X, Receipt, Wallet, PiggyBank,
   ShoppingBag, Utensils, Car, Film, FileText, Heart, BookOpen, MoreHorizontal,
-  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock, Sun, Moon
+  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock, Sun, Moon, Package
 } from 'lucide-react';
 import * as api from './api';
 
@@ -165,13 +165,16 @@ export default function App() {
   const [showAddIncome, setShowAddIncome] = useState(false);
   const [showCategoryDetails, setShowCategoryDetails] = useState(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showItemManager, setShowItemManager] = useState(false);
   const [categoryExpenses, setCategoryExpenses] = useState([]);
   const [categoryItems, setCategoryItems] = useState([]);
+  const [allItems, setAllItems] = useState([]);
   
   // Form states
   const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', item_id: '', date: '', is_recurring: 0, recurring_months: 0 });
   const [newItemName, setNewItemName] = useState('');
   const [showCreateItem, setShowCreateItem] = useState(false);
+  const [itemForm, setItemForm] = useState({ name: '' });
   const [incomeForm, setIncomeForm] = useState({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#14B8A6', icon: 'shopping-bag' });
   const [submitting, setSubmitting] = useState(false);
@@ -370,28 +373,61 @@ export default function App() {
     }
   }, [expenseForm.category_id, showAddExpense]);
 
+  // Load all items when item manager opens
+  useEffect(() => {
+    if (showItemManager) {
+      loadAllItems();
+    }
+  }, [showItemManager]);
+
   async function loadItems() {
     try {
-      const allItems = await api.getItems();
-      setItems(allItems || []);
+      const itemsData = await api.getItems();
+      setItems(itemsData || []);
     } catch (error) {
       console.error('Failed to load items:', error);
       setItems([]);
     }
   }
 
-  // Create new item
+  async function loadAllItems() {
+    try {
+      const itemsData = await api.getItems();
+      setAllItems(itemsData || []);
+    } catch (error) {
+      console.error('Failed to load items:', error);
+      setAllItems([]);
+    }
+  }
+
+  // Create new item (from expense form)
   async function handleCreateItem() {
     if (!newItemName.trim() || submitting) return;
     setSubmitting(true);
     try {
       const newItem = await api.createItem({ name: newItemName.trim() });
-      setItems([...items, newItem]);
+      const updatedItems = await loadItems();
       setExpenseForm({ ...expenseForm, item_id: newItem.id.toString() });
       setNewItemName('');
       setShowCreateItem(false);
     } catch (error) {
       alert('Failed to create item: ' + error.message);
+    }
+    setSubmitting(false);
+  }
+
+  // Add item (from item manager)
+  async function handleAddItem(e) {
+    e.preventDefault();
+    if (submitting || !itemForm.name.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.createItem({ name: itemForm.name.trim() });
+      setItemForm({ name: '' });
+      await loadAllItems();
+      await loadItems(); // Also update expense form items
+    } catch (error) {
+      alert('Failed to add item: ' + error.message);
     }
     setSubmitting(false);
   }
@@ -402,6 +438,7 @@ export default function App() {
     try {
       await api.deleteItem(id);
       setItems(items.filter(item => item.id !== id));
+      setAllItems(allItems.filter(item => item.id !== id));
       if (expenseForm.item_id === id.toString()) {
         setExpenseForm({ ...expenseForm, item_id: '' });
       }
@@ -506,6 +543,15 @@ export default function App() {
                 title="Manage Categories"
               >
                 <Tag className="w-5 h-5 dark:text-gray-400 text-gray-600" />
+              </button>
+              
+              {/* Item Manager Button */}
+              <button
+                onClick={() => setShowItemManager(true)}
+                className="p-2 rounded-lg dark:bg-dark-700 bg-white dark:border-dark-600 border-gray-200 border dark:hover:bg-dark-600 hover:bg-gray-50 transition-colors"
+                title="Manage Items"
+              >
+                <Package className="w-5 h-5 dark:text-gray-400 text-gray-600" />
               </button>
               
               {/* Display Mode Toggle */}
@@ -1195,6 +1241,68 @@ export default function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Item Manager Modal */}
+      {showItemManager && (
+        <Modal onClose={() => setShowItemManager(false)} title="Manage Items" wide>
+          <div className="space-y-6">
+            {/* Add Item Form */}
+            <form onSubmit={handleAddItem} className="space-y-4 p-4 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
+              <h3 className="font-semibold text-sm dark:text-gray-400 text-gray-600 uppercase tracking-wide">Add New Item</h3>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Name</label>
+                  <input
+                    type="text"
+                    placeholder="Item name (e.g., Edamar)"
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm({ name: e.target.value })}
+                    className="w-full"
+                    required
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={submitting || !itemForm.name.trim()}
+                    className="px-4 py-2 bg-teal-500 hover:bg-teal-600 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    Add Item
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* Item List */}
+            <div>
+              <h3 className="font-semibold text-sm dark:text-gray-400 text-gray-600 uppercase tracking-wide mb-3">Existing Items</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {allItems.length > 0 ? (
+                  allItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center dark:bg-dark-700 bg-white">
+                          <Package className="w-4 h-4 dark:text-gray-400 text-gray-600" />
+                        </div>
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        className="p-2 rounded-lg hover:bg-red-500/20 dark:text-gray-500 text-gray-600 hover:text-red-400 transition-colors"
+                        title="Delete item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center dark:text-gray-500 text-gray-400 py-8">No items yet. Create your first item above.</p>
+                )}
               </div>
             </div>
           </div>
