@@ -14,14 +14,14 @@
 }
 
 .light {
-  /* Light mode - soft colors */
-  --bg-primary: #f5f7fa;
-  --bg-secondary: #e8ecf1;
-  --bg-card: #ffffff;
-  --bg-hover: #f0f4f8;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --border-color: #e2e8f0;
+  /* Light mode - soft warm beige/cream colors */
+  --bg-primary: #f7f5f2;
+  --bg-secondary: #f0ede8;
+  --bg-card: #fefdfb;
+  --bg-hover: #ebe8e2;
+  --text-primary: #2c2418;
+  --text-secondary: #6b6458;
+  --border-color: #e5e1da;
 }
 
 * {
