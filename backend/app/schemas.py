@@ -34,6 +34,7 @@ class ExpenseBase(BaseModel):
     category_id: int
     date: date
     is_recurring: Optional[int] = 0
+    recurring_months: Optional[int] = 0  # 0: infinite, >0: number of months
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -44,6 +45,7 @@ class ExpenseUpdate(BaseModel):
     category_id: Optional[int] = None
     date: Optional[date] = None
     is_recurring: Optional[int] = None
+    recurring_months: Optional[int] = None
 
 class Expense(ExpenseBase):
     id: int
@@ -61,6 +63,7 @@ class IncomeBase(BaseModel):
     description: str
     date: date
     is_recurring: Optional[int] = 0
+    recurring_months: Optional[int] = 0  # 0: infinite, >0: number of months
 
 class IncomeCreate(IncomeBase):
     pass
@@ -70,6 +73,7 @@ class IncomeUpdate(BaseModel):
     description: Optional[str] = None
     date: Optional[date] = None
     is_recurring: Optional[int] = None
+    recurring_months: Optional[int] = None
 
 class Income(IncomeBase):
     id: int

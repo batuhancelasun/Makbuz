@@ -23,6 +23,7 @@ class Expense(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     date = Column(Date, nullable=False)
     is_recurring = Column(Integer, default=0)  # 0: one-time, 1: monthly
+    recurring_months = Column(Integer, default=0)  # 0: infinite, >0: number of months
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     category = relationship("Category", back_populates="expenses")
@@ -35,6 +36,7 @@ class Income(Base):
     description = Column(String, nullable=False)
     date = Column(Date, nullable=False)
     is_recurring = Column(Integer, default=0)  # 0: one-time, 1: monthly
+    recurring_months = Column(Integer, default=0)  # 0: infinite, >0: number of months
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Settings(Base):

@@ -9,12 +9,15 @@ from typing import List, Optional
 from pydantic import BaseModel
 import os
 
-from .database import engine, get_db, Base
+from .database import engine, get_db, Base, run_migrations
 from . import models, schemas
 from .auth import verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_DAYS
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Run migrations for existing databases
+run_migrations()
 
 app = FastAPI(title="Makbuz", description="Personal Expense Tracker")
 
@@ -380,10 +383,21 @@ def get_transactions(
     ).all()
     
     # Get recurring expenses (from previous months that should apply)
-    recurring_expenses = db.query(models.Expense).filter(
+    # Check if within recurring_months limit
+    recurring_expenses = []
+    all_recurring_exp = db.query(models.Expense).filter(
         models.Expense.is_recurring == 1,
         models.Expense.date <= date(year, month, 28)
     ).all()
+    
+    for exp in all_recurring_exp:
+        if exp.recurring_months == 0:  # Infinite
+            recurring_expenses.append(exp)
+        else:
+            # Calculate months between original date and current month
+            months_diff = (year - exp.date.year) * 12 + (month - exp.date.month)
+            if months_diff < exp.recurring_months:
+                recurring_expenses.append(exp)
     
     # Get income for the period
     incomes = db.query(models.Income).filter(
@@ -391,11 +405,21 @@ def get_transactions(
         extract('year', models.Income.date) == year
     ).all()
     
-    # Get recurring income
-    recurring_incomes = db.query(models.Income).filter(
+    # Get recurring income (check months limit)
+    all_recurring_inc = db.query(models.Income).filter(
         models.Income.is_recurring == 1,
         models.Income.date <= date(year, month, 28)
     ).all()
+    
+    recurring_incomes = []
+    for inc in all_recurring_inc:
+        if inc.recurring_months == 0:  # Infinite
+            recurring_incomes.append(inc)
+        else:
+            # Calculate months between original date and current month
+            months_diff = (year - inc.date.year) * 12 + (month - inc.date.month)
+            if months_diff < inc.recurring_months:
+                recurring_incomes.append(inc)
     
     transactions = []
     

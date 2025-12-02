@@ -109,7 +109,7 @@ function LoginScreen({ onLogin }) {
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/30">
             <Receipt className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">makbuz</h1>
+          <h1 className="text-3xl font-bold gradient-text mb-2">Makbuz</h1>
           <p className="text-gray-500">Enter your password to continue</p>
         </div>
         
@@ -162,8 +162,8 @@ export default function App() {
   const [categoryExpenses, setCategoryExpenses] = useState([]);
   
   // Form states
-  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', date: '', is_recurring: 0 });
-  const [incomeForm, setIncomeForm] = useState({ amount: '', description: '', date: '', is_recurring: 0 });
+  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+  const [incomeForm, setIncomeForm] = useState({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#14B8A6', icon: 'shopping-bag' });
   const [submitting, setSubmitting] = useState(false);
   
@@ -274,7 +274,7 @@ export default function App() {
         category_id: parseInt(expenseForm.category_id),
       });
       setShowAddExpense(false);
-      setExpenseForm({ amount: '', description: '', category_id: '', date: '', is_recurring: 0 });
+      setExpenseForm({ amount: '', description: '', category_id: '', date: '', is_recurring: 0, recurring_months: 0 });
       loadData();
     } catch (error) {
       alert('Failed to add expense: ' + error.message);
@@ -293,7 +293,7 @@ export default function App() {
         amount: parseFloat(incomeForm.amount),
       });
       setShowAddIncome(false);
-      setIncomeForm({ amount: '', description: '', date: '', is_recurring: 0 });
+      setIncomeForm({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
       loadData();
     } catch (error) {
       alert('Failed to add income: ' + error.message);
@@ -399,7 +399,7 @@ export default function App() {
                 <Receipt className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold gradient-text tracking-tight">makbuz</h1>
+                <h1 className="text-2xl font-bold gradient-text tracking-tight">Makbuz</h1>
                 <p className="text-xs text-gray-500">expense tracker</p>
               </div>
             </div>
@@ -829,18 +829,37 @@ export default function App() {
                 className="w-full"
               />
             </div>
-            <div className="flex items-center gap-3 p-3 bg-dark-600/50 rounded-lg">
-              <input
-                type="checkbox"
-                id="expense-recurring"
-                checked={expenseForm.is_recurring === 1}
-                onChange={(e) => setExpenseForm({ ...expenseForm, is_recurring: e.target.checked ? 1 : 0 })}
-                className="w-4 h-4 rounded accent-teal-500"
-              />
-              <label htmlFor="expense-recurring" className="text-sm text-gray-300 flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-teal-400" />
-                Recurring monthly (e.g., rent, subscriptions)
-              </label>
+            <div className="space-y-3 p-3 bg-dark-600/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="expense-recurring"
+                  checked={expenseForm.is_recurring === 1}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, is_recurring: e.target.checked ? 1 : 0, recurring_months: e.target.checked ? expenseForm.recurring_months : 0 })}
+                  className="w-4 h-4 rounded accent-teal-500"
+                />
+                <label htmlFor="expense-recurring" className="text-sm text-gray-300 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-teal-400" />
+                  Recurring monthly (e.g., rent, subscriptions)
+                </label>
+              </div>
+              {expenseForm.is_recurring === 1 && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Duration (months)</label>
+                  <select
+                    value={expenseForm.recurring_months}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, recurring_months: parseInt(e.target.value) })}
+                    className="w-full text-sm"
+                  >
+                    <option value="0">Infinite (forever)</option>
+                    <option value="3">3 months</option>
+                    <option value="6">6 months</option>
+                    <option value="12">12 months</option>
+                    <option value="24">24 months</option>
+                    <option value="36">36 months</option>
+                  </select>
+                </div>
+              )}
             </div>
             <button
               type="submit"
@@ -890,18 +909,37 @@ export default function App() {
                 className="w-full"
               />
             </div>
-            <div className="flex items-center gap-3 p-3 bg-dark-600/50 rounded-lg">
-              <input
-                type="checkbox"
-                id="income-recurring"
-                checked={incomeForm.is_recurring === 1}
-                onChange={(e) => setIncomeForm({ ...incomeForm, is_recurring: e.target.checked ? 1 : 0 })}
-                className="w-4 h-4 rounded accent-green-500"
-              />
-              <label htmlFor="income-recurring" className="text-sm text-gray-300 flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-green-400" />
-                Recurring monthly (e.g., salary)
-              </label>
+            <div className="space-y-3 p-3 bg-dark-600/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="income-recurring"
+                  checked={incomeForm.is_recurring === 1}
+                  onChange={(e) => setIncomeForm({ ...incomeForm, is_recurring: e.target.checked ? 1 : 0, recurring_months: e.target.checked ? incomeForm.recurring_months : 0 })}
+                  className="w-4 h-4 rounded accent-green-500"
+                />
+                <label htmlFor="income-recurring" className="text-sm text-gray-300 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-green-400" />
+                  Recurring monthly (e.g., salary)
+                </label>
+              </div>
+              {incomeForm.is_recurring === 1 && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Duration (months)</label>
+                  <select
+                    value={incomeForm.recurring_months}
+                    onChange={(e) => setIncomeForm({ ...incomeForm, recurring_months: parseInt(e.target.value) })}
+                    className="w-full text-sm"
+                  >
+                    <option value="0">Infinite (forever)</option>
+                    <option value="3">3 months</option>
+                    <option value="6">6 months</option>
+                    <option value="12">12 months</option>
+                    <option value="24">24 months</option>
+                    <option value="36">36 months</option>
+                  </select>
+                </div>
+              )}
             </div>
             <button
               type="submit"
