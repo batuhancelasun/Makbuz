@@ -49,7 +49,7 @@ class ExpenseBase(BaseModel):
     amount: float
     description: str
     category_id: int
-    item_id: Optional[int] = None
+    item_ids: Optional[List[int]] = []  # List of item IDs
     date: date
     is_recurring: Optional[int] = 0
     recurring_months: Optional[int] = 0  # 0: infinite, >0: number of months
@@ -61,13 +61,19 @@ class ExpenseUpdate(BaseModel):
     amount: Optional[float] = None
     description: Optional[str] = None
     category_id: Optional[int] = None
-    item_id: Optional[int] = None
+    item_ids: Optional[List[int]] = None
     date: Optional[date] = None
     is_recurring: Optional[int] = None
     recurring_months: Optional[int] = None
 
-class Expense(ExpenseBase):
+class Expense(BaseModel):
     id: int
+    amount: float
+    description: str
+    category_id: int
+    date: date
+    is_recurring: int = 0
+    recurring_months: int = 0
     created_at: datetime
     
     class Config:
@@ -75,7 +81,7 @@ class Expense(ExpenseBase):
 
 class ExpenseWithCategory(Expense):
     category: Category
-    item: Optional[Item] = None
+    items: List[Item] = []
 
 # Income schemas
 class IncomeBase(BaseModel):

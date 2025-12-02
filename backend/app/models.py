@@ -1,7 +1,15 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+
+# Many-to-many relationship table for expenses and items
+expense_items = Table(
+    'expense_items',
+    Base.metadata,
+    Column('expense_id', Integer, ForeignKey('expenses.id'), primary_key=True),
+    Column('item_id', Integer, ForeignKey('items.id'), primary_key=True)
+)
 
 class Category(Base):
     __tablename__ = "categories"
@@ -21,7 +29,7 @@ class Item(Base):
     name = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    expenses = relationship("Expense", back_populates="item")
+    expenses = relationship("Expense", secondary=expense_items, back_populates="items")
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -30,14 +38,13 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
     description = Column(String, nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
-    item_id = Column(Integer, ForeignKey("items.id"), nullable=True)  # Optional item
     date = Column(Date, nullable=False)
     is_recurring = Column(Integer, default=0)  # 0: one-time, 1: monthly
     recurring_months = Column(Integer, default=0)  # 0: infinite, >0: number of months
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     category = relationship("Category", back_populates="expenses")
-    item = relationship("Item", back_populates="expenses")
+    items = relationship("Item", secondary=expense_items, back_populates="expenses")
 
 class Income(Base):
     __tablename__ = "incomes"

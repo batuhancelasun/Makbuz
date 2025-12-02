@@ -239,11 +239,14 @@ def get_items_by_category(
     _: bool = Depends(get_current_user)
 ):
     """Get items with purchase counts for a specific category"""
+    # Use the junction table to count items
     items = db.query(
         models.Item,
         func.count(models.Expense.id).label('count')
     ).join(
-        models.Expense, models.Expense.item_id == models.Item.id
+        models.expense_items, models.expense_items.c.item_id == models.Item.id
+    ).join(
+        models.Expense, models.expense_items.c.expense_id == models.Expense.id
     ).filter(
         models.Expense.category_id == category_id
     ).group_by(models.Item.id).order_by(func.count(models.Expense.id).desc()).all()
@@ -308,7 +311,7 @@ def get_expenses(
 ):
     query = db.query(models.Expense).options(
         joinedload(models.Expense.category),
-        joinedload(models.Expense.item)
+        joinedload(models.Expense.items)
     )
     
     if category_id:
@@ -331,14 +334,24 @@ def create_expense(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    # Verify item exists if provided
-    if expense.item_id:
-        item = db.query(models.Item).filter(models.Item.id == expense.item_id).first()
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
+    # Verify items exist if provided
+    item_ids = expense.item_ids or []
+    if item_ids:
+        items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
+        if len(items) != len(item_ids):
+            raise HTTPException(status_code=404, detail="One or more items not found")
     
-    db_expense = models.Expense(**expense.model_dump())
+    # Create expense without items first
+    expense_data = expense.model_dump(exclude={'item_ids'})
+    db_expense = models.Expense(**expense_data)
     db.add(db_expense)
+    db.flush()  # Flush to get the expense ID
+    
+    # Add items to expense
+    if item_ids:
+        items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
+        db_expense.items = items
+    
     db.commit()
     db.refresh(db_expense)
     return db_expense
@@ -354,7 +367,20 @@ def update_expense(
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    update_data = expense.model_dump(exclude_unset=True)
+    update_data = expense.model_dump(exclude_unset=True, exclude={'item_ids'})
+    
+    # Handle item_ids separately
+    if 'item_ids' in expense.model_dump(exclude_unset=True):
+        item_ids = expense.item_ids or []
+        if item_ids:
+            items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
+            if len(items) != len(item_ids):
+                raise HTTPException(status_code=404, detail="One or more items not found")
+            db_expense.items = items
+        else:
+            db_expense.items = []
+    
+    # Update other fields
     for key, value in update_data.items():
         setattr(db_expense, key, value)
     

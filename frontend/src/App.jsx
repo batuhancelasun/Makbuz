@@ -171,7 +171,7 @@ export default function App() {
   const [allItems, setAllItems] = useState([]);
   
   // Form states
-  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', item_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', item_ids: [], date: '', is_recurring: 0, recurring_months: 0 });
   const [newItemName, setNewItemName] = useState('');
   const [showCreateItem, setShowCreateItem] = useState(false);
   const [itemForm, setItemForm] = useState({ name: '' });
@@ -317,10 +317,10 @@ export default function App() {
         ...expenseForm,
         amount: parseFloat(expenseForm.amount),
         category_id: parseInt(expenseForm.category_id),
-        item_id: expenseForm.item_id ? parseInt(expenseForm.item_id) : null,
+        item_ids: expenseForm.item_ids.map(id => parseInt(id)),
       });
       setShowAddExpense(false);
-      setExpenseForm({ amount: '', description: '', category_id: '', item_id: '', date: '', is_recurring: 0, recurring_months: 0 });
+      setExpenseForm({ amount: '', description: '', category_id: '', item_ids: [], date: '', is_recurring: 0, recurring_months: 0 });
       setNewItemName('');
       setShowCreateItem(false);
       loadData();
@@ -406,8 +406,9 @@ export default function App() {
     setSubmitting(true);
     try {
       const newItem = await api.createItem({ name: newItemName.trim() });
-      const updatedItems = await loadItems();
-      setExpenseForm({ ...expenseForm, item_id: newItem.id.toString() });
+      await loadItems();
+      // Add the new item to selected items
+      setExpenseForm({ ...expenseForm, item_ids: [...expenseForm.item_ids, newItem.id.toString()] });
       setNewItemName('');
       setShowCreateItem(false);
     } catch (error) {
@@ -439,9 +440,8 @@ export default function App() {
       await api.deleteItem(id);
       setItems(items.filter(item => item.id !== id));
       setAllItems(allItems.filter(item => item.id !== id));
-      if (expenseForm.item_id === id.toString()) {
-        setExpenseForm({ ...expenseForm, item_id: '' });
-      }
+      // Remove from selected items if present
+      setExpenseForm({ ...expenseForm, item_ids: expenseForm.item_ids.filter(itemId => itemId !== id.toString()) });
     } catch (error) {
       alert('Failed to delete: ' + error.message);
     }
@@ -962,7 +962,7 @@ export default function App() {
                 <select
                   required
                   value={expenseForm.category_id}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value, item_id: '' })}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value, item_ids: [] })}
                   className="w-full"
                 >
                   <option value="">Select category</option>
@@ -975,7 +975,7 @@ export default function App() {
             {expenseForm.category_id && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm dark:text-gray-400 text-gray-600 font-medium">Item (optional)</label>
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 font-medium">Items (optional - select multiple)</label>
                   {!showCreateItem && (
                     <button
                       type="button"
@@ -1018,16 +1018,43 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <select
-                    value={expenseForm.item_id}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, item_id: e.target.value })}
-                    className="w-full"
-                  >
-                    <option value="">No item (just description)</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                  </select>
+                  <div className="space-y-2 max-h-48 overflow-y-auto p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
+                    {items.length > 0 ? (
+                      items.map((item) => {
+                        const isSelected = expenseForm.item_ids.includes(item.id.toString());
+                        return (
+                          <label
+                            key={item.id}
+                            className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:dark:bg-dark-600/50 hover:bg-gray-100 transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setExpenseForm({
+                                    ...expenseForm,
+                                    item_ids: [...expenseForm.item_ids, item.id.toString()]
+                                  });
+                                } else {
+                                  setExpenseForm({
+                                    ...expenseForm,
+                                    item_ids: expenseForm.item_ids.filter(id => id !== item.id.toString())
+                                  });
+                                }
+                              }}
+                              className="w-4 h-4 rounded accent-teal-500"
+                            />
+                            <span className="text-sm">{item.name}</span>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm dark:text-gray-500 text-gray-600 text-center py-2">
+                        No items yet. Create one above or use the Item Manager.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1344,12 +1371,16 @@ export default function App() {
                   className="flex items-center justify-between p-4 dark:bg-dark-600/50 bg-gray-50 rounded-lg"
                 >
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium">{expense.description}</p>
-                      {expense.item && (
-                        <span className="text-xs px-2 py-0.5 dark:bg-dark-700 bg-white rounded-full dark:text-gray-300 text-gray-700">
-                          {expense.item.name}
-                        </span>
+                      {expense.items && expense.items.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {expense.items.map((item) => (
+                            <span key={item.id} className="text-xs px-2 py-0.5 dark:bg-dark-700 bg-white rounded-full dark:text-gray-300 text-gray-700">
+                              {item.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                       {expense.is_recurring === 1 && (
                         <RefreshCw className="w-3.5 h-3.5 text-teal-400" />
