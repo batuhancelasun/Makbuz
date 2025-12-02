@@ -3,13 +3,16 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
 
-# Many-to-many relationship table for expenses and items
-expense_items = Table(
-    'expense_items',
-    Base.metadata,
-    Column('expense_id', Integer, ForeignKey('expenses.id'), primary_key=True),
-    Column('item_id', Integer, ForeignKey('items.id'), primary_key=True)
-)
+# Association object for many-to-many relationship with quantity
+class ExpenseItem(Base):
+    __tablename__ = "expense_items"
+    
+    expense_id = Column(Integer, ForeignKey('expenses.id'), primary_key=True)
+    item_id = Column(Integer, ForeignKey('items.id'), primary_key=True)
+    quantity = Column(String, nullable=False, default="1")  # Store as string to support "1kg", "2", etc.
+    
+    expense = relationship("Expense", back_populates="expense_items")
+    item = relationship("Item", back_populates="expense_items")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -29,7 +32,7 @@ class Item(Base):
     name = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    expenses = relationship("Expense", secondary=expense_items, back_populates="items")
+    expense_items = relationship("ExpenseItem", back_populates="item")
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -44,7 +47,7 @@ class Expense(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     category = relationship("Category", back_populates="expenses")
-    items = relationship("Item", secondary=expense_items, back_populates="expenses")
+    expense_items = relationship("ExpenseItem", back_populates="expense", cascade="all, delete-orphan")
 
 class Income(Base):
     __tablename__ = "incomes"

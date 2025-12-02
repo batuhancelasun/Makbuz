@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import date, datetime
 from typing import Optional, List
+from pydantic import Field
 
 # Item schemas
 class ItemBase(BaseModel):
@@ -45,11 +46,15 @@ class CategoryWithTotal(Category):
     expense_count: int = 0
 
 # Expense schemas
+class ExpenseItemCreate(BaseModel):
+    item_id: int
+    quantity: str = "1"  # e.g., "2", "1kg", "500g"
+
 class ExpenseBase(BaseModel):
     amount: float
     description: str
     category_id: int
-    item_ids: Optional[List[int]] = []  # List of item IDs
+    items: Optional[List[ExpenseItemCreate]] = []  # List of items with quantities
     date: date
     is_recurring: Optional[int] = 0
     recurring_months: Optional[int] = 0  # 0: infinite, >0: number of months
@@ -61,7 +66,7 @@ class ExpenseUpdate(BaseModel):
     amount: Optional[float] = None
     description: Optional[str] = None
     category_id: Optional[int] = None
-    item_ids: Optional[List[int]] = None
+    items: Optional[List[ExpenseItemCreate]] = None
     date: Optional[date] = None
     is_recurring: Optional[int] = None
     recurring_months: Optional[int] = None
@@ -79,9 +84,16 @@ class Expense(BaseModel):
     class Config:
         from_attributes = True
 
+class ExpenseItemResponse(BaseModel):
+    item: Item
+    quantity: str
+    
+    class Config:
+        from_attributes = True
+
 class ExpenseWithCategory(Expense):
     category: Category
-    items: List[Item] = []
+    items: List[ExpenseItemResponse] = []
 
 # Income schemas
 class IncomeBase(BaseModel):

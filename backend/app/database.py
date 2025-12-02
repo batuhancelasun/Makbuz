@@ -53,6 +53,7 @@ def run_migrations():
                     CREATE TABLE IF NOT EXISTS expense_items (
                         expense_id INTEGER NOT NULL,
                         item_id INTEGER NOT NULL,
+                        quantity VARCHAR NOT NULL DEFAULT '1',
                         PRIMARY KEY (expense_id, item_id),
                         FOREIGN KEY (expense_id) REFERENCES expenses(id) ON DELETE CASCADE,
                         FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
@@ -66,13 +67,22 @@ def run_migrations():
                     conn.execute(text("SELECT item_id FROM expenses LIMIT 1"))
                     print("Migrating existing item_id data to expense_items...")
                     conn.execute(text("""
-                        INSERT INTO expense_items (expense_id, item_id)
-                        SELECT id, item_id FROM expenses WHERE item_id IS NOT NULL
+                        INSERT INTO expense_items (expense_id, item_id, quantity)
+                        SELECT id, item_id, '1' FROM expenses WHERE item_id IS NOT NULL
                     """))
                     conn.commit()
                     print("Migration complete: migrated existing item_id to expense_items")
                 except Exception:
                     print("No item_id column found, skipping migration")
+            
+            # Add quantity column to existing expense_items table if it doesn't exist
+            try:
+                conn.execute(text("SELECT quantity FROM expense_items LIMIT 1"))
+            except Exception:
+                print("Adding quantity column to expense_items table...")
+                conn.execute(text("ALTER TABLE expense_items ADD COLUMN quantity VARCHAR NOT NULL DEFAULT '1'"))
+                conn.commit()
+                print("Migration complete: added quantity column to expense_items")
             
             # Check and add recurring_months to expenses table
             try:

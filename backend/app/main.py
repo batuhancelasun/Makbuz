@@ -239,17 +239,17 @@ def get_items_by_category(
     _: bool = Depends(get_current_user)
 ):
     """Get items with purchase counts for a specific category"""
-    # Use the junction table to count items
+    # Use the ExpenseItem association to count items
     items = db.query(
         models.Item,
-        func.count(models.Expense.id).label('count')
+        func.count(models.ExpenseItem.expense_id).label('count')
     ).join(
-        models.expense_items, models.expense_items.c.item_id == models.Item.id
+        models.ExpenseItem, models.ExpenseItem.item_id == models.Item.id
     ).join(
-        models.Expense, models.expense_items.c.expense_id == models.Expense.id
+        models.Expense, models.ExpenseItem.expense_id == models.Expense.id
     ).filter(
         models.Expense.category_id == category_id
-    ).group_by(models.Item.id).order_by(func.count(models.Expense.id).desc()).all()
+    ).group_by(models.Item.id).order_by(func.count(models.ExpenseItem.expense_id).desc()).all()
     
     return [
         schemas.ItemWithCount(
@@ -311,7 +311,7 @@ def get_expenses(
 ):
     query = db.query(models.Expense).options(
         joinedload(models.Expense.category),
-        joinedload(models.Expense.items)
+        joinedload(models.Expense.expense_items).joinedload(models.ExpenseItem.item)
     )
     
     if category_id:
@@ -321,7 +321,29 @@ def get_expenses(
     if year:
         query = query.filter(extract('year', models.Expense.date) == year)
     
-    return query.order_by(models.Expense.date.desc()).offset(offset).limit(limit).all()
+    expenses = query.order_by(models.Expense.date.desc()).offset(offset).limit(limit).all()
+    
+    # Convert to response format
+    result = []
+    for expense in expenses:
+        expense_dict = {
+            "id": expense.id,
+            "amount": expense.amount,
+            "description": expense.description,
+            "category_id": expense.category_id,
+            "date": expense.date,
+            "is_recurring": expense.is_recurring,
+            "recurring_months": expense.recurring_months,
+            "created_at": expense.created_at,
+            "category": expense.category,
+            "items": [
+                {"item": ei.item, "quantity": ei.quantity}
+                for ei in expense.expense_items
+            ]
+        }
+        result.append(schemas.ExpenseWithCategory(**expense_dict))
+    
+    return result
 
 @app.post("/api/expenses", response_model=schemas.Expense)
 def create_expense(
@@ -335,22 +357,27 @@ def create_expense(
         raise HTTPException(status_code=404, detail="Category not found")
     
     # Verify items exist if provided
-    item_ids = expense.item_ids or []
-    if item_ids:
+    expense_items = expense.items or []
+    if expense_items:
+        item_ids = [ei.item_id for ei in expense_items]
         items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
         if len(items) != len(item_ids):
             raise HTTPException(status_code=404, detail="One or more items not found")
     
     # Create expense without items first
-    expense_data = expense.model_dump(exclude={'item_ids'})
+    expense_data = expense.model_dump(exclude={'items'})
     db_expense = models.Expense(**expense_data)
     db.add(db_expense)
     db.flush()  # Flush to get the expense ID
     
-    # Add items to expense
-    if item_ids:
-        items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
-        db_expense.items = items
+    # Add items with quantities to expense
+    for ei_data in expense_items:
+        expense_item = models.ExpenseItem(
+            expense_id=db_expense.id,
+            item_id=ei_data.item_id,
+            quantity=ei_data.quantity or "1"
+        )
+        db.add(expense_item)
     
     db.commit()
     db.refresh(db_expense)
@@ -367,18 +394,29 @@ def update_expense(
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    update_data = expense.model_dump(exclude_unset=True, exclude={'item_ids'})
+    update_data = expense.model_dump(exclude_unset=True, exclude={'items'})
     
-    # Handle item_ids separately
-    if 'item_ids' in expense.model_dump(exclude_unset=True):
-        item_ids = expense.item_ids or []
-        if item_ids:
+    # Handle items separately
+    if 'items' in expense.model_dump(exclude_unset=True):
+        expense_items_data = expense.items or []
+        
+        # Delete existing expense_items
+        db.query(models.ExpenseItem).filter(models.ExpenseItem.expense_id == expense_id).delete()
+        
+        # Add new expense_items with quantities
+        if expense_items_data:
+            item_ids = [ei.item_id for ei in expense_items_data]
             items = db.query(models.Item).filter(models.Item.id.in_(item_ids)).all()
             if len(items) != len(item_ids):
                 raise HTTPException(status_code=404, detail="One or more items not found")
-            db_expense.items = items
-        else:
-            db_expense.items = []
+            
+            for ei_data in expense_items_data:
+                expense_item = models.ExpenseItem(
+                    expense_id=expense_id,
+                    item_id=ei_data.item_id,
+                    quantity=ei_data.quantity or "1"
+                )
+                db.add(expense_item)
     
     # Update other fields
     for key, value in update_data.items():

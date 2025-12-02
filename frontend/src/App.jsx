@@ -171,7 +171,7 @@ export default function App() {
   const [allItems, setAllItems] = useState([]);
   
   // Form states
-  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', item_ids: [], date: '', is_recurring: 0, recurring_months: 0 });
+  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
   const [newItemName, setNewItemName] = useState('');
   const [showCreateItem, setShowCreateItem] = useState(false);
   const [itemForm, setItemForm] = useState({ name: '' });
@@ -317,10 +317,13 @@ export default function App() {
         ...expenseForm,
         amount: parseFloat(expenseForm.amount),
         category_id: parseInt(expenseForm.category_id),
-        item_ids: expenseForm.item_ids.map(id => parseInt(id)),
+        items: expenseForm.items.map(item => ({
+          item_id: parseInt(item.item_id),
+          quantity: item.quantity || '1'
+        })),
       });
       setShowAddExpense(false);
-      setExpenseForm({ amount: '', description: '', category_id: '', item_ids: [], date: '', is_recurring: 0, recurring_months: 0 });
+      setExpenseForm({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
       setNewItemName('');
       setShowCreateItem(false);
       loadData();
@@ -407,8 +410,11 @@ export default function App() {
     try {
       const newItem = await api.createItem({ name: newItemName.trim() });
       await loadItems();
-      // Add the new item to selected items
-      setExpenseForm({ ...expenseForm, item_ids: [...expenseForm.item_ids, newItem.id.toString()] });
+      // Add the new item to selected items with default quantity
+      setExpenseForm({ 
+        ...expenseForm, 
+        items: [...expenseForm.items, { item_id: newItem.id.toString(), quantity: '1' }]
+      });
       setNewItemName('');
       setShowCreateItem(false);
     } catch (error) {
@@ -441,7 +447,7 @@ export default function App() {
       setItems(items.filter(item => item.id !== id));
       setAllItems(allItems.filter(item => item.id !== id));
       // Remove from selected items if present
-      setExpenseForm({ ...expenseForm, item_ids: expenseForm.item_ids.filter(itemId => itemId !== id.toString()) });
+      setExpenseForm({ ...expenseForm, items: expenseForm.items.filter(item => item.item_id !== id.toString()) });
     } catch (error) {
       alert('Failed to delete: ' + error.message);
     }
@@ -962,7 +968,7 @@ export default function App() {
                 <select
                   required
                   value={expenseForm.category_id}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value, item_ids: [] })}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, category_id: e.target.value, items: [] })}
                   className="w-full"
                 >
                   <option value="">Select category</option>
@@ -1021,11 +1027,14 @@ export default function App() {
                   <div className="space-y-2 max-h-48 overflow-y-auto p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
                     {items.length > 0 ? (
                       items.map((item) => {
-                        const isSelected = expenseForm.item_ids.includes(item.id.toString());
+                        const selectedItem = expenseForm.items.find(i => i.item_id === item.id.toString());
+                        const isSelected = !!selectedItem;
                         return (
-                          <label
+                          <div
                             key={item.id}
-                            className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:dark:bg-dark-600/50 hover:bg-gray-100 transition-colors"
+                            className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                              isSelected ? 'dark:bg-dark-600/50 bg-gray-100' : 'hover:dark:bg-dark-600/30 hover:bg-gray-50'
+                            }`}
                           >
                             <input
                               type="checkbox"
@@ -1034,19 +1043,39 @@ export default function App() {
                                 if (e.target.checked) {
                                   setExpenseForm({
                                     ...expenseForm,
-                                    item_ids: [...expenseForm.item_ids, item.id.toString()]
+                                    items: [...expenseForm.items, { item_id: item.id.toString(), quantity: '1' }]
                                   });
                                 } else {
                                   setExpenseForm({
                                     ...expenseForm,
-                                    item_ids: expenseForm.item_ids.filter(id => id !== item.id.toString())
+                                    items: expenseForm.items.filter(i => i.item_id !== item.id.toString())
                                   });
                                 }
                               }}
                               className="w-4 h-4 rounded accent-teal-500"
                             />
-                            <span className="text-sm">{item.name}</span>
-                          </label>
+                            <span className="text-sm flex-1">{item.name}</span>
+                            {isSelected && (
+                              <input
+                                type="text"
+                                placeholder="1"
+                                value={selectedItem.quantity || '1'}
+                                onChange={(e) => {
+                                  setExpenseForm({
+                                    ...expenseForm,
+                                    items: expenseForm.items.map(i => 
+                                      i.item_id === item.id.toString() 
+                                        ? { ...i, quantity: e.target.value || '1' }
+                                        : i
+                                    )
+                                  });
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-20 px-2 py-1 text-sm rounded border dark:border-dark-600 border-gray-300 dark:bg-dark-700 bg-white"
+                                placeholder="1"
+                              />
+                            )}
+                          </div>
                         );
                       })
                     ) : (
@@ -1375,9 +1404,9 @@ export default function App() {
                       <p className="font-medium">{expense.description}</p>
                       {expense.items && expense.items.length > 0 && (
                         <div className="flex items-center gap-1 flex-wrap">
-                          {expense.items.map((item) => (
-                            <span key={item.id} className="text-xs px-2 py-0.5 dark:bg-dark-700 bg-white rounded-full dark:text-gray-300 text-gray-700">
-                              {item.name}
+                          {expense.items.map((expenseItem, idx) => (
+                            <span key={expenseItem.item?.id || idx} className="text-xs px-2 py-0.5 dark:bg-dark-700 bg-white rounded-full dark:text-gray-300 text-gray-700">
+                              {expenseItem.quantity} {expenseItem.item?.name || ''}
                             </span>
                           ))}
                         </div>
