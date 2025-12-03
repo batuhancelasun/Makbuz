@@ -288,8 +288,8 @@ def delete_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
     
-    # Check if item has expenses
-    expense_count = db.query(models.Expense).filter(models.Expense.item_id == item_id).count()
+    # Check if item has expenses (via expense_items relationship)
+    expense_count = db.query(models.ExpenseItem).filter(models.ExpenseItem.item_id == item_id).count()
     if expense_count > 0:
         raise HTTPException(status_code=400, detail="Cannot delete item with expenses")
     
