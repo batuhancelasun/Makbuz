@@ -228,8 +228,21 @@ def delete_category(
 # ============ ITEM ENDPOINTS ============
 
 @app.get("/api/items", response_model=List[schemas.Item])
-def get_items(db: Session = Depends(get_db), _: bool = Depends(get_current_user)):
-    items = db.query(models.Item).order_by(models.Item.name).all()
+def get_items(
+    category_id: Optional[int] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search items by name"),
+    db: Session = Depends(get_db), 
+    _: bool = Depends(get_current_user)
+):
+    query = db.query(models.Item)
+    
+    if category_id:
+        query = query.filter(models.Item.category_id == category_id)
+    
+    if search:
+        query = query.filter(models.Item.name.ilike(f"%{search}%"))
+    
+    items = query.order_by(models.Item.name).all()
     return items
 
 @app.get("/api/items/by-category/{category_id}", response_model=List[schemas.ItemWithCount])

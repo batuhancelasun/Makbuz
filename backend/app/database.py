@@ -101,6 +101,15 @@ def run_migrations():
                 conn.execute(text("ALTER TABLE incomes ADD COLUMN recurring_months INTEGER DEFAULT 0"))
                 conn.commit()
                 print("Migration complete: added recurring_months to incomes")
+            
+            # Check and add category_id to items table
+            try:
+                conn.execute(text("SELECT category_id FROM items LIMIT 1"))
+            except Exception:
+                print("Adding category_id column to items table...")
+                conn.execute(text("ALTER TABLE items ADD COLUMN category_id INTEGER"))
+                conn.commit()
+                print("Migration complete: added category_id to items")
     except Exception as e:
         print(f"Migration check failed (this is OK for new databases): {e}")
 

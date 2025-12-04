@@ -4,7 +4,7 @@ import {
   Plus, TrendingUp, TrendingDown, Calendar, 
   ChevronLeft, ChevronRight, X, Receipt, Wallet, PiggyBank,
   ShoppingBag, Utensils, Car, Film, FileText, Heart, BookOpen, MoreHorizontal,
-  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock, Sun, Moon, Package
+  Trash2, RefreshCw, Table, PieChartIcon, Tag, LogOut, Lock, Sun, Moon, Package, Edit, Search
 } from 'lucide-react';
 import * as api from './api';
 
@@ -169,12 +169,15 @@ export default function App() {
   const [categoryExpenses, setCategoryExpenses] = useState([]);
   const [categoryItems, setCategoryItems] = useState([]);
   const [allItems, setAllItems] = useState([]);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editingIncome, setEditingIncome] = useState(null);
   
   // Form states
   const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
   const [newItemName, setNewItemName] = useState('');
   const [showCreateItem, setShowCreateItem] = useState(false);
-  const [itemForm, setItemForm] = useState({ name: '' });
+  const [itemForm, setItemForm] = useState({ name: '', category_id: '' });
+  const [itemSearch, setItemSearch] = useState('');
   const [incomeForm, setIncomeForm] = useState({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#14B8A6', icon: 'shopping-bag' });
   const [submitting, setSubmitting] = useState(false);
@@ -313,6 +316,10 @@ export default function App() {
     if (submitting) return;
     setSubmitting(true);
     try {
+      if (editingExpense) {
+        await handleUpdateExpense(e);
+        return;
+      }
       await api.createExpense({
         ...expenseForm,
         amount: parseFloat(expenseForm.amount),
@@ -326,6 +333,7 @@ export default function App() {
       setExpenseForm({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
       setNewItemName('');
       setShowCreateItem(false);
+      setItemSearch('');
       loadData();
     } catch (error) {
       alert('Failed to add expense: ' + error.message);
@@ -339,6 +347,10 @@ export default function App() {
     if (submitting) return;
     setSubmitting(true);
     try {
+      if (editingIncome) {
+        await handleUpdateIncome(e);
+        return;
+      }
       await api.createIncome({
         ...incomeForm,
         amount: parseFloat(incomeForm.amount),
@@ -367,14 +379,14 @@ export default function App() {
     setSubmitting(false);
   }
 
-  // Load items when category changes
+  // Load items when category or search changes
   useEffect(() => {
     if (expenseForm.category_id && showAddExpense) {
-      loadItems();
+      loadItems(expenseForm.category_id, itemSearch);
     } else {
       setItems([]);
     }
-  }, [expenseForm.category_id, showAddExpense]);
+  }, [expenseForm.category_id, itemSearch, showAddExpense]);
 
   // Load all items when item manager opens
   useEffect(() => {
@@ -383,9 +395,9 @@ export default function App() {
     }
   }, [showItemManager]);
 
-  async function loadItems() {
+  async function loadItems(categoryId = null, search = '') {
     try {
-      const itemsData = await api.getItems();
+      const itemsData = await api.getItems({ category_id: categoryId, search });
       setItems(itemsData || []);
     } catch (error) {
       console.error('Failed to load items:', error);
@@ -408,8 +420,11 @@ export default function App() {
     if (!newItemName.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const newItem = await api.createItem({ name: newItemName.trim() });
-      await loadItems();
+      const newItem = await api.createItem({ 
+        name: newItemName.trim(),
+        category_id: expenseForm.category_id || null
+      });
+      await loadItems(expenseForm.category_id || null, itemSearch);
       // Add the new item to selected items with default quantity
       setExpenseForm({ 
         ...expenseForm, 
@@ -429,10 +444,13 @@ export default function App() {
     if (submitting || !itemForm.name.trim()) return;
     setSubmitting(true);
     try {
-      await api.createItem({ name: itemForm.name.trim() });
-      setItemForm({ name: '' });
+      await api.createItem({ 
+        name: itemForm.name.trim(),
+        category_id: itemForm.category_id || null
+      });
+      setItemForm({ name: '', category_id: '' });
       await loadAllItems();
-      await loadItems(); // Also update expense form items
+      await loadItems(expenseForm.category_id || null, itemSearch);
     } catch (error) {
       alert('Failed to add item: ' + error.message);
     }
@@ -489,6 +507,85 @@ export default function App() {
     } catch (error) {
       alert('Failed to delete: ' + error.message);
     }
+  }
+
+  // Edit expense
+  function handleEditExpense(expense) {
+    setEditingExpense(expense);
+    setExpenseForm({
+      amount: expense.amount.toString(),
+      description: expense.description || '',
+      category_id: expense.category_id.toString(),
+      items: expense.items?.map(ei => ({
+        item_id: ei.item.id.toString(),
+        quantity: ei.quantity || '1'
+      })) || [],
+      date: expense.date,
+      is_recurring: expense.is_recurring || 0,
+      recurring_months: expense.recurring_months || 0
+    });
+    setShowAddExpense(true);
+  }
+
+  // Edit income
+  function handleEditIncome(income) {
+    setEditingIncome(income);
+    setIncomeForm({
+      amount: income.amount.toString(),
+      description: income.description || '',
+      date: income.date,
+      is_recurring: income.is_recurring || 0,
+      recurring_months: income.recurring_months || 0
+    });
+    setShowAddIncome(true);
+  }
+
+  // Update expense
+  async function handleUpdateExpense(e) {
+    e.preventDefault();
+    if (submitting || !editingExpense) return;
+    setSubmitting(true);
+    try {
+      await api.updateExpense(editingExpense.id, {
+        ...expenseForm,
+        amount: parseFloat(expenseForm.amount),
+        category_id: parseInt(expenseForm.category_id),
+        items: expenseForm.items.map(item => ({
+          item_id: parseInt(item.item_id),
+          quantity: item.quantity || '1'
+        })),
+      });
+      setShowAddExpense(false);
+      setEditingExpense(null);
+      setExpenseForm({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
+      setNewItemName('');
+      setShowCreateItem(false);
+      setItemSearch('');
+      loadData();
+    } catch (error) {
+      alert('Failed to update expense: ' + error.message);
+    }
+    setSubmitting(false);
+  }
+
+  // Update income
+  async function handleUpdateIncome(e) {
+    e.preventDefault();
+    if (submitting || !editingIncome) return;
+    setSubmitting(true);
+    try {
+      await api.updateIncome(editingIncome.id, {
+        ...incomeForm,
+        amount: parseFloat(incomeForm.amount),
+      });
+      setShowAddIncome(false);
+      setEditingIncome(null);
+      setIncomeForm({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
+      loadData();
+    } catch (error) {
+      alert('Failed to update income: ' + error.message);
+    }
+    setSubmitting(false);
   }
 
   // Show loading while checking auth
@@ -869,12 +966,35 @@ export default function App() {
                               {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                             </td>
                             <td className="p-4">
-                              <button
-                                onClick={() => handleDeleteTransaction(t)}
-                                className="p-1.5 rounded-lg hover:bg-red-500/20 dark:text-gray-500 text-gray-600 hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (t.type === 'expense') {
+                                      // Need to fetch full expense data with items
+                                      api.getExpenses({ month, year }).then(expenses => {
+                                        const expense = expenses.find(e => e.id === t.id);
+                                        if (expense) handleEditExpense(expense);
+                                      }).catch(err => alert('Failed to load expense: ' + err.message));
+                                    } else {
+                                      api.getIncomes({ month, year }).then(incomes => {
+                                        const income = incomes.find(i => i.id === t.id);
+                                        if (income) handleEditIncome(income);
+                                      }).catch(err => alert('Failed to load income: ' + err.message));
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg hover:bg-teal-500/20 dark:text-gray-500 text-gray-600 hover:text-teal-400 transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTransaction(t)}
+                                  className="p-1.5 rounded-lg hover:bg-red-500/20 dark:text-gray-500 text-gray-600 hover:text-red-400 transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -935,7 +1055,12 @@ export default function App() {
 
       {/* Add Expense Modal */}
       {showAddExpense && (
-        <Modal onClose={() => setShowAddExpense(false)} title="Add Expense">
+        <Modal onClose={() => {
+          setShowAddExpense(false);
+          setEditingExpense(null);
+          setExpenseForm({ amount: '', description: '', category_id: '', items: [], date: '', is_recurring: 0, recurring_months: 0 });
+          setItemSearch('');
+        }} title={editingExpense ? "Edit Expense" : "Add Expense"}>
           <form onSubmit={handleAddExpense} className="space-y-4">
             <div>
               <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Amount (€)</label>
@@ -1024,8 +1149,20 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
-                    {items.length > 0 ? (
+                  <div className="space-y-2">
+                    {/* Search bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 dark:text-gray-500 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search items..."
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border dark:border-dark-600 border-gray-300 dark:bg-dark-700 bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto p-3 dark:bg-dark-600/30 bg-gray-50 rounded-lg">
+                      {items.length > 0 ? (
                       items.map((item) => {
                         const selectedItem = expenseForm.items.find(i => i.item_id === item.id.toString());
                         const isSelected = !!selectedItem;
@@ -1079,10 +1216,11 @@ export default function App() {
                         );
                       })
                     ) : (
-                      <p className="text-sm dark:text-gray-500 text-gray-600 text-center py-2">
-                        No items yet. Create one above or use the Item Manager.
-                      </p>
-                    )}
+                        <p className="text-sm dark:text-gray-500 text-gray-600 text-center py-2">
+                          No items found. {itemSearch ? 'Try a different search term.' : 'Create one above or use the Item Manager.'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1132,7 +1270,7 @@ export default function App() {
               disabled={submitting}
               className="w-full py-3 bg-teal-500 rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50"
             >
-              {submitting ? 'Adding...' : 'Add Expense'}
+              {submitting ? (editingExpense ? 'Updating...' : 'Adding...') : (editingExpense ? 'Update Expense' : 'Add Expense')}
             </button>
           </form>
         </Modal>
@@ -1140,7 +1278,11 @@ export default function App() {
 
       {/* Add Income Modal */}
       {showAddIncome && (
-        <Modal onClose={() => setShowAddIncome(false)} title="Add Income">
+        <Modal onClose={() => {
+          setShowAddIncome(false);
+          setEditingIncome(null);
+          setIncomeForm({ amount: '', description: '', date: '', is_recurring: 0, recurring_months: 0 });
+        }} title={editingIncome ? "Edit Income" : "Add Income"}>
           <form onSubmit={handleAddIncome} className="space-y-4">
             <div>
               <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Amount (€)</label>
@@ -1210,7 +1352,7 @@ export default function App() {
               disabled={submitting}
               className="w-full py-3 bg-green-500 rounded-lg font-semibold hover:bg-green-600 transition-colors disabled:opacity-50"
             >
-              {submitting ? 'Adding...' : 'Add Income'}
+              {submitting ? (editingIncome ? 'Updating...' : 'Adding...') : (editingIncome ? 'Update Income' : 'Add Income')}
             </button>
           </form>
         </Modal>
@@ -1313,13 +1455,26 @@ export default function App() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Name</label>
-                    <input
-                      type="text"
-                      value={itemForm.name}
-                      onChange={(e) => setItemForm({ name: e.target.value })}
+                  <input
+                    type="text"
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
                     className="w-full"
                     required
                   />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm dark:text-gray-400 text-gray-600 mb-2">Category (optional)</label>
+                  <select
+                    value={itemForm.category_id || ''}
+                    onChange={(e) => setItemForm({ ...itemForm, category_id: e.target.value || '' })}
+                    className="w-full"
+                  >
+                    <option value="">No category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-end">
                   <button

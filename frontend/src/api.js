@@ -104,7 +104,13 @@ export const deleteCategory = (id) => fetchAPI(`/categories/${id}`, {
 });
 
 // Items
-export const getItems = () => fetchAPI('/items');
+export const getItems = (params = {}) => {
+  const searchParams = new URLSearchParams();
+  if (params.category_id) searchParams.set('category_id', params.category_id);
+  if (params.search) searchParams.set('search', params.search);
+  const query = searchParams.toString();
+  return fetchAPI(`/items${query ? `?${query}` : ''}`);
+};
 export const getItemsByCategory = (categoryId) => fetchAPI(`/items/by-category/${categoryId}`);
 export const createItem = (data) => fetchAPI('/items', {
   method: 'POST',

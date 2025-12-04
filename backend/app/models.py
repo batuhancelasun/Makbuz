@@ -30,8 +30,10 @@ class Item(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    category = relationship("Category")
     expense_items = relationship("ExpenseItem", back_populates="item")
 
 class Expense(Base):

@@ -6,6 +6,7 @@ from pydantic import Field
 # Item schemas
 class ItemBase(BaseModel):
     name: str
+    category_id: Optional[int] = None
 
 class ItemCreate(ItemBase):
     pass
