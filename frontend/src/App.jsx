@@ -153,6 +153,7 @@ export default function App() {
   const [yearlyStats, setYearlyStats] = useState(null);
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
+  const [itemsStats, setItemsStats] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -247,21 +248,32 @@ export default function App() {
       setCategories([]);
     }
     
-    // Load stats and transactions
-    try {
-      const [statsData, trans] = await Promise.all([
-        view === 'monthly' ? api.getMonthlyStats(month, year) : api.getYearlyStats(year),
-        api.getTransactions(month, year)
-      ]);
-      
-      if (view === 'monthly') {
-        setStats(statsData);
-      } else {
-        setYearlyStats(statsData);
+    // Load items stats if in items view
+    if (view === 'items') {
+      try {
+        const itemsData = await api.getItemsStats();
+        setItemsStats(itemsData || []);
+      } catch (error) {
+        console.error('Failed to load items stats:', error);
+        setItemsStats([]);
       }
-      setTransactions(trans || []);
-    } catch (error) {
-      console.error('Failed to load stats/transactions:', error);
+    } else {
+      // Load stats and transactions
+      try {
+        const [statsData, trans] = await Promise.all([
+          view === 'monthly' ? api.getMonthlyStats(month, year) : api.getYearlyStats(year),
+          api.getTransactions(month, year)
+        ]);
+        
+        if (view === 'monthly') {
+          setStats(statsData);
+        } else {
+          setYearlyStats(statsData);
+        }
+        setTransactions(trans || []);
+      } catch (error) {
+        console.error('Failed to load stats/transactions:', error);
+      }
     }
     
     setLoading(false);
@@ -618,9 +630,48 @@ export default function App() {
     income: m.income,
   })) || [];
 
+  // Prepare items chart data (grouped by category or by purchase count)
+  const itemsChartData = itemsStats
+    ?.filter(item => item.count > 0)
+    ?.map(item => {
+      const category = item.category || categories.find(c => c.id === item.category_id);
+      return {
+        name: item.name,
+        count: item.count,
+        category: category?.name || 'Uncategorized',
+        categoryColor: category?.color || '#94A3B8',
+        categoryId: item.category_id
+      };
+    }) || [];
+
+  // Group items by category for pie chart
+  const itemsByCategory = itemsChartData.reduce((acc, item) => {
+    const catName = item.category;
+    if (!acc[catName]) {
+      acc[catName] = {
+        name: catName,
+        count: 0,
+        color: item.categoryColor,
+        items: []
+      };
+    }
+    acc[catName].count += item.count;
+    acc[catName].items.push(item);
+    return acc;
+  }, {});
+
+  const itemsCategoryChartData = Object.values(itemsByCategory)
+    .filter(cat => cat.count > 0)
+    .map(cat => ({
+      name: cat.name,
+      total: cat.count,
+      color: cat.color
+    }));
+
   // Calculate totals for table view
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const totalItemsPurchased = itemsStats.reduce((sum, item) => sum + (item.count || 0), 0);
 
   return (
     <div className="min-h-screen animated-bg p-4 md:p-8 pb-24 md:pb-8" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
@@ -704,6 +755,16 @@ export default function App() {
                   }`}
                 >
                   Yearly
+                </button>
+                <button
+                  onClick={() => setView('items')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                    view === 'items' 
+                      ? 'bg-teal-500 text-white' 
+                      : 'dark:text-gray-400 text-gray-600 dark:hover:text-white hover:text-gray-900'
+                  }`}
+                >
+                  Items
                 </button>
               </div>
 
@@ -804,7 +865,171 @@ export default function App() {
             </div>
 
             {/* Main Content - Chart or Table */}
-            {displayMode === 'chart' ? (
+            {view === 'items' ? (
+              /* Items View */
+              displayMode === 'chart' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Items by Category Pie Chart */}
+                  <div className="dark:bg-dark-700 bg-white rounded-xl p-6 dark:border-dark-600 border-gray-200 border animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Package className="w-5 h-5 text-teal-400" />
+                      Items by Category
+                    </h2>
+                    
+                    {itemsCategoryChartData.length > 0 ? (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={itemsCategoryChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={80}
+                              outerRadius={130}
+                              paddingAngle={2}
+                              dataKey="total"
+                              labelLine={false}
+                              label={renderCustomLabel}
+                              cursor="pointer"
+                            >
+                              {itemsCategoryChartData.map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={entry.color}
+                                  stroke="transparent"
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  return (
+                                    <div className="dark:bg-dark-700 bg-white dark:border-dark-500 border-gray-200 border rounded-lg p-3">
+                                      <p className="font-semibold" style={{ color: data.color }}>{data.name}</p>
+                                      <p className="dark:text-gray-300 text-gray-700 font-mono">{data.total} purchase{data.total !== 1 ? 's' : ''}</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="h-80 flex items-center justify-center dark:text-gray-500 text-gray-400">
+                        No items purchased yet
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Items List */}
+                  <div className="dark:bg-dark-700 bg-white rounded-xl p-6 dark:border-dark-600 border-gray-200 border animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <h2 className="text-lg font-semibold mb-4">Top Items</h2>
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                      {itemsChartData
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10)
+                        .map((item) => {
+                          const category = item.category || categories.find(c => c.id === item.categoryId);
+                          const IconComponent = category ? ICONS[category?.icon] || MoreHorizontal : Package;
+                          return (
+                            <div
+                              key={item.name}
+                              className="flex items-center gap-3 p-3 rounded-lg dark:bg-dark-600/50 bg-gray-50"
+                            >
+                              <div 
+                                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                style={{ backgroundColor: `${item.categoryColor}20` }}
+                              >
+                                <IconComponent className="w-5 h-5" style={{ color: item.categoryColor }} />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm dark:text-gray-500 text-gray-600">{item.category}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold font-mono text-teal-400">{item.count}x</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {itemsChartData.length === 0 && (
+                        <p className="text-center dark:text-gray-500 text-gray-400 py-8">No items purchased yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Items Table View */
+                <div className="dark:bg-dark-700 bg-white rounded-xl dark:border-dark-600 border-gray-200 border mb-8 animate-slide-up overflow-hidden">
+                  <div className="p-4 dark:border-b-dark-600 border-b-gray-200 border-b flex items-center justify-between flex-wrap gap-2">
+                    <h2 className="text-lg font-semibold">All Items</h2>
+                    <div className="text-sm">
+                      <span className="text-teal-400 font-mono">{totalItemsPurchased} total purchases</span>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="dark:border-b-dark-600 border-b-gray-200 border-b text-left text-sm dark:text-gray-400 text-gray-600">
+                          <th className="p-4 font-medium">Item Name</th>
+                          <th className="p-4 font-medium">Category</th>
+                          <th className="p-4 font-medium text-right">Purchase Count</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itemsStats.length > 0 ? (
+                          itemsStats
+                            .sort((a, b) => b.count - a.count)
+                            .map((item) => {
+                              const category = item.category || categories.find(c => c.id === item.category_id);
+                              const IconComponent = category ? ICONS[category?.icon] || MoreHorizontal : Package;
+                              return (
+                                <tr key={item.id} className="dark:border-b-dark-600/50 border-b-gray-200/50 border-b dark:hover:bg-dark-600/30 hover:bg-gray-50">
+                                  <td className="p-4">
+                                    <div className="flex items-center gap-3">
+                                      <div 
+                                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                        style={{ backgroundColor: category ? `${category.color}20` : '#94A3B820' }}
+                                      >
+                                        <IconComponent className="w-5 h-5" style={{ color: category?.color || '#94A3B8' }} />
+                                      </div>
+                                      <span className="font-medium">{item.name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    {category ? (
+                                      <span 
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                                      >
+                                        {category.name}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm dark:text-gray-500 text-gray-400 italic">Uncategorized</span>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-right font-mono font-semibold text-teal-400">
+                                    {item.count || 0}x
+                                  </td>
+                                </tr>
+                              );
+                            })
+                        ) : (
+                          <tr>
+                            <td colSpan="3" className="p-8 text-center dark:text-gray-500 text-gray-400">
+                              No items yet. Create items when adding expenses.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            ) : displayMode === 'chart' ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Donut Chart */}
                 <div className="dark:bg-dark-700 bg-white rounded-xl p-6 dark:border-dark-600 border-gray-200 border animate-slide-up" style={{ animationDelay: '0.1s' }}>

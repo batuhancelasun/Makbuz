@@ -111,6 +111,7 @@ export const getItems = (params = {}) => {
   const query = searchParams.toString();
   return fetchAPI(`/items${query ? `?${query}` : ''}`);
 };
+export const getItemsStats = () => fetchAPI('/items/stats');
 export const getItemsByCategory = (categoryId) => fetchAPI(`/items/by-category/${categoryId}`);
 export const createItem = (data) => fetchAPI('/items', {
   method: 'POST',

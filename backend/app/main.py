@@ -291,6 +291,43 @@ def create_item(
     db.refresh(db_item)
     return db_item
 
+@app.get("/api/items/stats")
+def get_items_stats(
+    db: Session = Depends(get_db),
+    _: bool = Depends(get_current_user)
+):
+    """Get all items with purchase counts and category info"""
+    items = db.query(
+        models.Item,
+        func.count(models.ExpenseItem.expense_id).label('count')
+    ).outerjoin(
+        models.ExpenseItem, models.ExpenseItem.item_id == models.Item.id
+    ).group_by(models.Item.id).order_by(func.count(models.ExpenseItem.expense_id).desc()).all()
+    
+    result = []
+    for item, count in items:
+        # Load category separately
+        category = None
+        if item.category_id:
+            category = db.query(models.Category).filter(models.Category.id == item.category_id).first()
+        
+        item_dict = {
+            "id": item.id,
+            "name": item.name,
+            "created_at": item.created_at,
+            "count": count or 0,
+            "category_id": item.category_id,
+            "category": {
+                "id": category.id,
+                "name": category.name,
+                "color": category.color,
+                "icon": category.icon
+            } if category else None
+        }
+        result.append(item_dict)
+    
+    return result
+
 @app.delete("/api/items/{item_id}")
 def delete_item(
     item_id: int, 
