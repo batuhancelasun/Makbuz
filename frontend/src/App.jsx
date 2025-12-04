@@ -629,7 +629,7 @@ export default function App() {
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
+              <div className="w-32 h-32 rounded-xl flex items-center justify-center overflow-hidden">
                 <img src="/makbuz.png" alt="Makbuz Logo" className="w-full h-full object-contain" />
               </div>
               <div>
