@@ -679,11 +679,11 @@ export default function App() {
         {/* Header */}
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-32 h-32 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="flex items-center gap-5">
+              <div className="w-32 h-32 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img src="/makbuz.png" alt="Makbuz Logo" className="w-full h-full object-contain" />
               </div>
-              <div>
+              <div className="flex-shrink-0">
                 <h1 className="text-2xl font-bold gradient-text tracking-tight">Makbuz</h1>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>expense tracker</p>
               </div>
